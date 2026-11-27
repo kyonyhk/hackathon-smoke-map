@@ -6,7 +6,7 @@
 <title>FahSai</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Cal+Sans&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Noto+Sans+Thai:wght@400;500;700&family=Cal+Sans&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@9.0.16/dist.min.js"></script>
@@ -19,8 +19,8 @@
     --glass: rgba(17, 19, 25, 0.72);
     --glass-strong: rgba(17, 19, 25, 0.88);
     --line: rgba(244, 241, 234, 0.13);
-    --font-body: "DM Sans", system-ui, sans-serif;
-    --font-head: "Cal Sans", "DM Sans", sans-serif;
+    --font-body: "DM Sans", "Noto Sans Thai", system-ui, sans-serif;
+    --font-head: "Cal Sans", "Noto Sans Thai", "DM Sans", sans-serif;
     --font-mono: "IBM Plex Mono", ui-monospace, monospace;
     --r: 16px;
   }
@@ -87,6 +87,47 @@
   .row:hover .nm { text-decoration: underline; }
   .row .pm { font-family: var(--font-mono); font-size: 13px; padding: 2px 8px; border-radius: 999px; color: #111; }
 
+  #lang { display: flex; padding: 4px; border-radius: 999px; }
+  #lang button { border: 0; background: transparent; padding: 8px 14px; border-radius: 999px; cursor: pointer; font-size: 14px; color: var(--ink-soft); }
+  #lang button.on { background: var(--ink); color: #111; font-weight: 500; }
+
+  /* Labels on the map (web text, so Thai marks show correctly) */
+  #labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .lbl { position: absolute; left: 0; top: 0; white-space: nowrap; font-weight: 700; border-radius: 8px; will-change: transform, opacity; }
+  .lbl.ev { font-size: 14px; padding: 4px 9px; color: #111; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+  .lbl.wl { font-size: 20px; padding: 6px 12px; color: #fff; box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+
+  .cta.ghost { background: transparent; color: var(--ink); border: 1px solid rgba(244,241,234,0.3); margin-top: 10px; }
+  .cta.ghost:hover { background: rgba(244,241,234,0.08); }
+  .back { border: 0; background: transparent; color: var(--ink-soft); cursor: pointer; padding: 0; font-size: 13px; margin-bottom: 8px; }
+  .back:hover { color: var(--ink); }
+  .opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; margin-top: 10px; border: 1px solid; }
+  .opt.clean { border-color: rgba(52,211,153,0.55); background: rgba(52,211,153,0.10); }
+  .opt.fast { border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.07); }
+  .opt .l { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .opt .l i { width: 18px; height: 5px; border-radius: 3px; display: inline-block; }
+  .opt .s { font-size: 13px; color: var(--ink-soft); margin-top: 3px; }
+  .opt .v { font-family: var(--font-head); font-size: 26px; }
+  .gain { margin-top: 16px; font-family: var(--font-head); font-size: 24px; line-height: 1.2; color: #a7f3d0; }
+  .avoid { margin-top: 6px; font-size: 13.5px; color: var(--ink-soft); }
+  .lbl.pin { font-size: 14px; padding: 5px 10px; color: #111; }
+
+  #panel .close { position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: rgba(244,241,234,0.06); cursor: pointer; display: grid; place-items: center; color: var(--ink-soft); font-size: 18px; line-height: 1; }
+  #panel .close:hover { background: rgba(244,241,234,0.14); color: var(--ink); }
+
+  /* Live readings feed */
+  #feed { position: fixed; left: 20px; bottom: 150px; width: 300px; padding: 12px 14px 8px; }
+  #feed .k { display: flex; align-items: center; gap: 7px; }
+  #feed .k i { width: 7px; height: 7px; border-radius: 50%; background: #fde68a; box-shadow: 0 0 8px #fde68a; }
+  #feedList { margin-top: 6px; }
+  .fe { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; animation: feedIn .5s ease; }
+  .fe:first-child { border-top: 0; }
+  .fe .who { color: var(--ink); font-weight: 500; white-space: nowrap; }
+  .fe .who.joe { color: #fde68a; }
+  .fe .st { color: var(--ink-soft); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fe .pm { font-family: var(--font-mono); font-size: 12px; padding: 2px 7px; border-radius: 999px; color: #111; }
+  @keyframes feedIn { from { opacity: 0; transform: translateY(-6px); background: rgba(253,230,138,0.12); } to { opacity: 1; transform: none; background: transparent; } }
+
   /* Legend */
   #legend { position: fixed; left: 20px; bottom: 34px; width: 250px; padding: 12px 16px; transition: opacity .5s; }
   #legend.off { opacity: 0; }
@@ -110,8 +151,9 @@
   @media (max-width: 760px) {
     #top { left: 12px; right: 12px; top: 12px; flex-wrap: wrap; gap: 8px; }
     #searchbox { order: 3; max-width: none; flex-basis: 100%; }
+    #lang { margin-left: auto; }
     #panel { left: 12px; right: 12px; width: auto; top: auto; bottom: 30px; max-height: 46vh; }
-    #legend { display: none; }
+    #legend, #feed { display: none; }
     #toast { left: 12px; right: 12px; width: auto; top: 12px; bottom: auto; transform: translateY(-160%); }
     #toast.on { transform: translateY(0); }
   }
@@ -126,7 +168,7 @@
     <div id="logo"></div>
     <div>
       <div id="brand">FahSai</div>
-      <div id="live"><i></i><span><b id="online">287</b> riders online · updated <b id="ago">2</b> s ago</span></div>
+      <div id="live"><i></i><span id="liveTxt"></span></div>
     </div>
   </div>
   <div id="searchbox">
@@ -134,19 +176,26 @@
     <input id="search" placeholder="Search your soi, e.g. Nimman Soi 7" autocomplete="off" spellcheck="false">
     <div id="results" class="glass"></div>
   </div>
+  <div id="lang" class="glass"><button data-l="en">EN</button><button data-l="th">ไทย</button></div>
 </div>
+<div id="labels"></div>
 
 <div id="panel" class="glass off"></div>
 
 <div id="legend" class="glass">
-  <div class="k" style="text-transform:none;letter-spacing:.02em">PM2.5 (µg/m³)</div>
+  <div class="k" style="text-transform:none;letter-spacing:.02em" id="lgTitle"></div>
   <div class="bar"></div>
   <div class="ticks"><span>0</span><span>50</span><span>100</span><span>150</span><span>220+</span></div>
-  <div class="keys"><span><i style="background:#fff7e6;box-shadow:0 0 6px #fde68a"></i>Rider sending data</span><span><i style="background:rgba(239,68,68,.55)"></i>Smoke</span></div>
+  <div class="keys"><span><i style="background:#fff7e6;box-shadow:0 0 6px #fde68a"></i><span id="lgRider"></span></span><span><i style="background:rgba(239,68,68,.55)"></i><span id="lgSmoke"></span></span></div>
+</div>
+
+<div id="feed" class="glass">
+  <div class="k"><i></i><span id="feedTitle"></span></div>
+  <div id="feedList"></div>
 </div>
 
 <div id="toast">
-  <div class="h"><div class="app">L</div><span>LINE · <span id="toastApp">FahSai</span></span><span class="when">now</span></div>
+  <div class="h"><div class="app">L</div><span>LINE · <span id="toastApp">FahSai</span></span><span class="when" id="toastNow"></span></div>
   <div class="b" id="toastBody"></div>
 </div>
 
@@ -156,8 +205,67 @@
   const D = window.SOI_DATA;
   const $ = id => document.getElementById(id);
   const params = new URLSearchParams(location.search);
-  const BRAND = params.get("name") || "FahSai";
-  $("brand").textContent = BRAND; $("toastApp").textContent = BRAND; document.title = BRAND;
+  const L = {
+    en: {
+      brand: "FahSai",
+      live: (n, a) => `<b>${n}</b> riders online · updated <b>${a}</b> s ago`,
+      search: "Search your soi, e.g. Nimman Soi 7",
+      lgTitle: "PM2.5 (µg/m³)", lgRider: "Rider sending data", lgSmoke: "Smoke",
+      feedTitle: "Live readings from riders",
+      rider: n => `Rider ${n}`, joe: "Joe", unnamed: "Unnamed soi",
+      yourStreet: "Your street", unit: "PM2.5 µg/m³",
+      bands: ["Very good", "Good", "Moderate", "Starts to affect health", "Affects health"],
+      measured: n => `Measured by ${n} riders in the last 10 minutes`,
+      last12: "Last 12 hours", now: "now",
+      cleaner: "Cleaner air nearby",
+      away: (m, x) => `${m} m away · ${x}× less smoke`,
+      alert: "Alert me on LINE", alertOn: n => `✓ Alerts on for ${n}`,
+      toastNear: (a, pa, b, m, pb) => `Smoke on <b>${a}</b> is <b>${pa}</b> now. <b>${b}</b>, ${m} m away, is <b>${pb}</b>. Take ${b}.`,
+      toastOnly: (a, pa) => `Smoke on <b>${a}</b> is <b>${pa}</b> now. We will tell you when it is clean.`,
+      close: "Close",
+      routeFrom: "Clean route from here", whereTo: "Where to?", routeTitle: "Clean route",
+      cleanName: "Clean route", fastName: "Fastest",
+      minAir: (m, a) => `${m} min · air on the way ${a}`,
+      gain: (p, x) => x > 0 ? `${p}% less smoke for ${x} more min` : `${p}% less smoke, same time`,
+      same: "The fastest route is also the cleanest.",
+      avoid: n => `Avoids ${n}`,
+      sendRoute: "Send route to LINE", sent: "✓ Sent to LINE",
+      toastRoute: (to, m, p, av) => `Clean route to <b>${to}</b>: ${m} min, <b>${p}% less smoke</b>.${av ? ` Avoid ${av}.` : ""}`,
+      back: "← Back",
+      fastLbl: m => `Fastest · ${m} min`, cleanLbl: m => `Clean · ${m} min`,
+    },
+    th: {
+      brand: "ฟ้าใส",
+      live: (n, a) => `ไรเดอร์ออนไลน์ <b>${n}</b> คน · อัปเดต <b>${a}</b> วินาทีที่แล้ว`,
+      search: "ค้นหาซอยของคุณ เช่น นิมมานฯ ซอย 7",
+      lgTitle: "PM2.5 (มคก./ลบ.ม.)", lgRider: "ไรเดอร์กำลังส่งข้อมูล", lgSmoke: "ควัน",
+      feedTitle: "ค่าฝุ่นสดจากไรเดอร์",
+      rider: n => `ไรเดอร์ ${n}`, joe: "โจ", unnamed: "ซอยไม่มีชื่อ",
+      yourStreet: "ถนนของคุณ", unit: "PM2.5 มคก./ลบ.ม.",
+      bands: ["ดีมาก", "ดี", "ปานกลาง", "เริ่มมีผลกระทบต่อสุขภาพ", "มีผลกระทบต่อสุขภาพ"],
+      measured: n => `วัดโดยไรเดอร์ ${n} คน ใน 10 นาทีล่าสุด`,
+      last12: "12 ชั่วโมงล่าสุด", now: "ตอนนี้",
+      cleaner: "อากาศดีกว่า ใกล้ๆ คุณ",
+      away: (m, x) => `ห่าง ${m} ม. · ควันน้อยกว่า ${x} เท่า`,
+      alert: "แจ้งเตือนฉันทาง LINE", alertOn: n => `✓ เปิดการแจ้งเตือน ${n} แล้ว`,
+      toastNear: (a, pa, b, m, pb) => `ตอนนี้ <b>${a}</b> ค่าฝุ่น <b>${pa}</b> แต่ <b>${b}</b> ห่างไป ${m} ม. ค่าฝุ่นแค่ <b>${pb}</b> แนะนำให้ใช้ ${b}`,
+      toastOnly: (a, pa) => `ตอนนี้ <b>${a}</b> ค่าฝุ่น <b>${pa}</b> เราจะแจ้งคุณเมื่ออากาศดีขึ้น`,
+      close: "ปิด",
+      routeFrom: "เส้นทางอากาศดีจากที่นี่", whereTo: "จะไปที่ไหน?", routeTitle: "เส้นทางอากาศดี",
+      cleanName: "เส้นทางอากาศดี", fastName: "เร็วที่สุด",
+      minAir: (m, a) => `${m} นาที · ค่าฝุ่นระหว่างทาง ${a}`,
+      gain: (p, x) => x > 0 ? `ควันน้อยลง ${p}% ใช้เวลาเพิ่มแค่ ${x} นาที` : `ควันน้อยลง ${p}% ใช้เวลาเท่าเดิม`,
+      same: "เส้นทางที่เร็วที่สุดก็อากาศดีที่สุดแล้ว",
+      avoid: n => `เลี่ยง${n}`,
+      sendRoute: "ส่งเส้นทางไปที่ LINE", sent: "✓ ส่งไปที่ LINE แล้ว",
+      toastRoute: (to, m, p, av) => `เส้นทางอากาศดีไป <b>${to}</b>: ${m} นาที <b>ควันน้อยลง ${p}%</b>${av ? ` เลี่ยง${av}` : ""}`,
+      back: "← กลับ",
+      fastLbl: m => `เร็วที่สุด · ${m} นาที`, cleanLbl: m => `อากาศดี · ${m} นาที`,
+    },
+  };
+  let lang = params.get("lang") === "th" ? "th" : params.get("lang") === "en" ? "en" : (() => { try { return localStorage.getItem("fahsai-lang") || "en"; } catch (e) { return "en"; } })();
+  const t = () => L[lang];
+  const brand = () => params.get("name") || t().brand;
 
   // ---------- Helpers ----------
   const M_LAT = 110600, M_LON = 105300;
@@ -177,13 +285,7 @@
   }
   const css = c => `rgb(${c[0]},${c[1]},${c[2]})`;
   // Thai Pollution Control Department bands for PM2.5 (24 h)
-  function band(pm) {
-    if (pm <= 15) return "Very good";
-    if (pm <= 25) return "Good";
-    if (pm <= 37.5) return "Moderate";
-    if (pm <= 75) return "Starts to affect health";
-    return "Affects health";
-  }
+  function band(pm) { return t().bands[pm <= 15 ? 0 : pm <= 25 ? 1 : pm <= 37.5 ? 2 : pm <= 75 ? 3 : 4]; }
   function distM(a, b) { return Math.hypot((a[0] - b[0]) * M_LON, (a[1] - b[1]) * M_LAT); }
 
   // ---------- Streets ----------
@@ -195,7 +297,8 @@
     const nm = D.names[s.way];
     const key = nm || "#" + s.way;
     let st = streets.get(key);
-    if (!st) { st = { key, name: nm || "Unnamed soi", segs: [], sum: 0, len: 0, cx: 0, cy: 0 }; streets.set(key, st); }
+    if (!st) { st = { key, name: nm, nameTh: "", segs: [], sum: 0, len: 0, cx: 0, cy: 0 }; streets.set(key, st); }
+    if (!st.nameTh && D.namesTh[s.way]) st.nameTh = D.namesTh[s.way];
     st.segs.push(i); st.sum += s.pm * s.len; st.len += s.len;
     st.cx += (s.path[0][0] + s.path[1][0]) / 2 * s.len; st.cy += (s.path[0][1] + s.path[1][1]) / 2 * s.len;
     s.key = key;
@@ -213,6 +316,10 @@
   }
   const named = [...streets.values()].filter(s => !s.key.startsWith("#") && s.len > 60);
   const short = n => n.replace("Nimmanhaemin Road", "Nimman").replace(" Road", " Rd");
+  const shortTh = n => n.replace(/^ถนนนิมมานเหมินท(ร)?์\s*/, "นิมมานฯ ");
+  // The street name in the chosen language (English if there is no Thai name)
+  const nm = st => !st ? "" : lang === "th" && st.nameTh ? shortTh(st.nameTh) : st.name ? short(st.name) : (st.nameTh ? shortTh(st.nameTh) : t().unnamed);
+  const riderName = i => i === 0 ? t().joe : t().rider(100 + i);
 
   // ---------- Smoke particles (soft puffs that drift) ----------
   const puff = document.createElement("canvas"); puff.width = puff.height = 64;
@@ -238,16 +345,89 @@
   const DRIFT = 170; // metres
 
   // ---------- Riders (live dots) ----------
+  // Each rider does delivery orders on real streets: wait for food, ride the fastest route, wait at the door.
   const riders = D.trips.map((tr, i) => {
-    const r = rng(1000 + i), t0 = tr.t[0];
-    return { p: tr.p, t: tr.t.map(t => t - t0), v: tr.v, dur: tr.t[tr.t.length - 1] - t0, off: r() * 10, ring: r() * 4 };
+    const r = rng(1000 + i), n = tr.t.length, xs = new Float64Array(n), ys = new Float64Array(n), ts = new Float64Array(n);
+    let x = 0, y = 0, t = 0;
+    for (let k = 0; k < n; k++) { x += tr.x[k]; y += tr.y[k]; t += tr.t[k]; xs[k] = x / 1e5; ys[k] = y / 1e5; ts[k] = t; }
+    return { id: i, xs, ys, ts, w: tr.w, period: t, off: r() * t, ping: r() * 30 };
   });
-  const SPEED = 1 / 60; // trip-hours per real second (about 60x real time)
-  function riderAt(r, sec) {
-    let u = (sec * SPEED + r.off) % (2 * r.dur); if (u > r.dur) u = 2 * r.dur - u;
-    let lo = 0, hi = r.t.length - 1; while (lo < hi - 1) { const m = (lo + hi) >> 1; if (r.t[m] <= u) lo = m; else hi = m; }
-    const k = r.t[hi] > r.t[lo] ? (u - r.t[lo]) / (r.t[hi] - r.t[lo]) : 0;
-    return [lerp(r.p[lo][0], r.p[hi][0], k), lerp(r.p[lo][1], r.p[hi][1], k), r.v[hi]];
+  // Real speed by default: 1 second on screen = 1 second on the road. "?speed=3" makes it 3 times faster.
+  const SIM = Math.max(0.25, Math.min(30, Number(params.get("speed")) || 1));
+  const READ_EVERY = 10; // each sensor sends a reading every 10 seconds (real time)
+  function riderAt(r, simT) {
+    const u = (simT + r.off) % r.period;
+    let lo = 0, hi = r.ts.length - 1; while (lo < hi - 1) { const m = (lo + hi) >> 1; if (r.ts[m] <= u) lo = m; else hi = m; }
+    const k = r.ts[hi] > r.ts[lo] ? (u - r.ts[lo]) / (r.ts[hi] - r.ts[lo]) : 0;
+    const moving = r.xs[hi] !== r.xs[lo] || r.ys[hi] !== r.ys[lo];
+    return { pos: [lerp(r.xs[lo], r.xs[hi], k), lerp(r.ys[lo], r.ys[hi], k)], way: r.w[hi], moving,
+      seg: [[r.xs[lo], r.ys[lo]], [r.xs[hi], r.ys[hi]]] };
+  }
+  const wayStreet = D.names.map((nm, wi) => streets.get(nm || "#" + wi));
+
+  // ---------- Routes: fastest and clean ----------
+  // Motorbike speeds in city traffic (km/h). Main roads are busy, so they are only a little faster than sois.
+  const SPEED = { trunk: 30, primary: 27, primary_link: 25, secondary: 26, secondary_link: 24, tertiary: 25, tertiary_link: 24, unclassified: 23, residential: 22, living_street: 18 };
+  const PLACES = [
+    { id: "thaphae", en: "Tha Phae Gate", th: "ประตูท่าแพ", pos: [98.9935, 18.7877] },
+    { id: "santitham", en: "Santitham", th: "สันติธรรม", pos: [98.9825, 18.8045] },
+    { id: "warorot", en: "Warorot Market", th: "กาดหลวง (ตลาดวโรรส)", pos: [99.0000, 18.7905] },
+    { id: "bazaar", en: "Night Bazaar", th: "ไนท์บาซาร์", pos: [99.0005, 18.7855] },
+    { id: "cmgate", en: "Chiang Mai Gate", th: "ประตูเชียงใหม่", pos: [98.9900, 18.7795] },
+  ];
+  const placeName = pl => lang === "th" ? pl.th : pl.en;
+  const nodeId = new Map(), nodeXY = [], adj = [];
+  function nid(x, y) { const k = Math.round(x * 1e5) + "," + Math.round(y * 1e5); let i = nodeId.get(k); if (i === undefined) { i = nodeXY.length; nodeId.set(k, i); nodeXY.push([x, y]); adj.push([]); } return i; }
+  segs.forEach((sg, si) => {
+    const a = nid(sg.path[0][0], sg.path[0][1]), b = nid(sg.path[1][0], sg.path[1][1]);
+    const tm = sg.len / ((SPEED[D.wayHw[sg.way]] || 22) / 3.6);
+    adj[a].push(b, si, tm); adj[b].push(a, si, tm);
+  });
+  const mainNet = (() => { // the largest connected part of the street network
+    const comp = new Int32Array(nodeXY.length).fill(-1); let best = -1, bestN = 0, c = 0;
+    for (let s0 = 0; s0 < nodeXY.length; s0++) {
+      if (comp[s0] >= 0) continue; const q = [s0]; comp[s0] = c;
+      for (let qi = 0; qi < q.length; qi++) { const u = q[qi], A = adj[u]; for (let j = 0; j < A.length; j += 3) if (comp[A[j]] < 0) { comp[A[j]] = c; q.push(A[j]); } }
+      if (q.length > bestN) { bestN = q.length; best = c; } c++;
+    }
+    return comp.map(v => v === best ? 1 : 0);
+  })();
+  function nearestNode(p) {
+    let bi = -1, bd = Infinity;
+    for (let i = 0; i < nodeXY.length; i++) { if (!mainNet[i]) continue; const d = distM(nodeXY[i], p); if (d < bd) { bd = d; bi = i; } }
+    return bi;
+  }
+  function shortest(src, dst, clean) {
+    const n = nodeXY.length, dist = new Float64Array(n).fill(Infinity), prevN = new Int32Array(n).fill(-1), prevS = new Int32Array(n).fill(-1);
+    const hk = [], hv = [];
+    const push = (k, v) => { hk.push(k); hv.push(v); let i = hk.length - 1; while (i > 0) { const pI = (i - 1) >> 1; if (hk[pI] <= hk[i]) break; [hk[pI], hk[i]] = [hk[i], hk[pI]]; [hv[pI], hv[i]] = [hv[i], hv[pI]]; i = pI; } };
+    const pop = () => { const k = hk[0], v = hv[0], lk = hk.pop(), lv = hv.pop(); if (hk.length) { hk[0] = lk; hv[0] = lv; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < hk.length && hk[l] < hk[m]) m = l; if (r < hk.length && hk[r] < hk[m]) m = r; if (m === i) break; [hk[m], hk[i]] = [hk[i], hk[m]]; [hv[m], hv[i]] = [hv[i], hv[m]]; i = m; } } return [k, v]; };
+    dist[src] = 0; push(0, src);
+    while (hk.length) {
+      const [d, u] = pop(); if (u === dst) break; if (d > dist[u]) continue;
+      const A = adj[u];
+      for (let j = 0; j < A.length; j += 3) {
+        const v = A[j], si = A[j + 1], tm = A[j + 2];
+        const nd = d + (clean ? tm * (segs[si].pm + 20) : tm);
+        if (nd < dist[v]) { dist[v] = nd; prevN[v] = u; prevS[v] = si; push(nd, v); }
+      }
+    }
+    const coords = [], segList = []; let T = 0, E = 0;
+    for (let v = dst; v !== src && v >= 0; v = prevN[v]) {
+      const si = prevS[v]; if (si < 0) break;
+      const sg = segs[si], tm = sg.len / ((SPEED[D.wayHw[sg.way]] || 22) / 3.6);
+      T += tm; E += tm * sg.pm; segList.push(si); coords.push(nodeXY[v]);
+    }
+    coords.push(nodeXY[src]); coords.reverse(); segList.reverse();
+    // fraction of the way at each point, for the "drawing" animation
+    let acc = 0; const ts = [0];
+    for (let i = 1; i < coords.length; i++) { acc += distM(coords[i - 1], coords[i]); ts.push(acc); }
+    return { coords, ts: ts.map(v => v / (acc || 1)), segList, T, E, avg: E / (T || 1) };
+  }
+  function pointAt(r, f) {
+    let lo = 0, hi = r.ts.length - 1; while (lo < hi - 1) { const m = (lo + hi) >> 1; if (r.ts[m] <= f) lo = m; else hi = m; }
+    const k = r.ts[hi] > r.ts[lo] ? (f - r.ts[lo]) / (r.ts[hi] - r.ts[lo]) : 0;
+    return [lerp(r.coords[lo][0], r.coords[hi][0], k), lerp(r.coords[lo][1], r.coords[hi][1], k)];
   }
 
   // ---------- Map ----------
@@ -263,7 +443,8 @@
       paint: { "fill-extrusion-color": "#272b34", "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0], "fill-extrusion-opacity": 0.9 } }, firstSymbol && firstSymbol.id);
     for (const l of map.getStyle().layers) if (l.type === "symbol") { try { map.setPaintProperty(l.id, "text-opacity", 0.5); } catch (e) {} }
   });
-  const overlay = new deck.MapboxOverlay({ interleaved: false, layers: [], getCursor: ({ isHovering }) => isHovering ? "pointer" : "grab" });
+  const overlay = new deck.MapboxOverlay({ interleaved: false, layers: [], getCursor: ({ isHovering }) => isHovering ? "pointer" : "grab",
+    onClick: info => { if (!info.object && (S.sel || S.route)) clearSel(false); } });
   map.addControl(overlay);
 
   // ---------- State ----------
@@ -283,6 +464,48 @@
     return out;
   }
   let walls = [], wallLabels = [];
+
+  // ---------- Live readings ----------
+  const pmOfWay = w => { const st = w >= 0 ? wayStreet[w] : null; return st ? st.pm : 120; };
+  const fade = ms => ms < 250 ? ms / 250 : ms > 2400 ? Math.max(0, 1 - (ms - 2400) / 600) : 1;
+  let lastRiders = null, events = [], feedCount = 0;
+  function onScreen(p) { const c = map.project(p); return c.x > 60 && c.x < innerWidth - (S.sel ? 400 : 60) && c.y > 110 && c.y < innerHeight - 60; }
+  function pushReading() {
+    if (!lastRiders || document.hidden) return;
+    const recent = new Set(events.slice(0, 3).map(e => e.key));
+    const ok = i => { const r = lastRiders[i]; const st = r.way >= 0 ? wayStreet[r.way] : null; return r.moving && st && !st.key.startsWith("#") && !recent.has(st.key) && onScreen(r.pos); };
+    let pick = -1;
+    if (feedCount % 5 === 2 && ok(0)) pick = 0; // Joe shows up now and then
+    for (let tries = 0; pick < 0 && tries < 60; tries++) { const i = Math.floor(Math.random() * riders.length); if (ok(i)) pick = i; }
+    if (pick < 0) return;
+    const r = lastRiders[pick], st = wayStreet[r.way];
+    const e = { key: st.key, rider: pick, pm: Math.round(st.pm + (Math.random() - 0.5) * 6),
+      street: st.segs.map(i => segs[i].path), born: clock == null ? performance.now() : clock };
+    events = [e, ...events].slice(0, 6); feedCount++;
+    renderFeed(true);
+    ago = 0; renderLive();
+  }
+  function renderFeed(animate) {
+    $("feedList").innerHTML = events.slice(0, 4).map((e, i) =>
+      `<div class="fe" style="${animate && i === 0 ? "" : "animation:none"}"><span class="who ${e.rider === 0 ? "joe" : ""}">${riderName(e.rider)}</span><span class="st">${nm(streets.get(e.key))}</span><span class="pm" style="background:${css(color(e.pm))}">${e.pm}</span></div>`).join("");
+  }
+  setInterval(pushReading, 1800);
+
+  // ---------- Map labels as web text ----------
+  const labelEls = new Map();
+  function placeLabels(list) {
+    const vp = overlay._deck && overlay._deck.getViewports && overlay._deck.getViewports()[0];
+    const seen = new Set();
+    for (const l of list) {
+      let el = labelEls.get(l.id);
+      if (!el) { el = document.createElement("div"); $("labels").appendChild(el); labelEls.set(l.id, el); }
+      seen.add(l.id);
+      const [x, y] = vp ? vp.project(l.pos) : (() => { const p = map.project([l.pos[0], l.pos[1]]); return [p.x, p.y]; })();
+      el.className = "lbl " + l.cls; el.textContent = l.text; el.style.background = l.bg; el.style.opacity = l.op.toFixed(3);
+      el.style.transform = `translate(${x.toFixed(1)}px, ${(y + l.dy).toFixed(1)}px) translate(-50%, -100%)`;
+    }
+    for (const [id, el] of labelEls) if (!seen.has(id)) { el.remove(); labelEls.delete(id); }
+  }
 
   // ---------- Render loop ----------
   const T0 = performance.now();
@@ -318,51 +541,90 @@
     }));
 
     // 3. Riders: bright dots, with a ring each time they send a reading
-    const rp = riders.map(r => riderAt(r, sec));
+    const simT = sec * SIM;
+    const rp = riders.map(r => riderAt(r, simT));
+    lastRiders = rp;
+    // Every rider's sensor sends a reading every 10 s: a small ring in the colour of the street
     const rings = [];
-    riders.forEach((r, i) => { const ph = ((sec + r.ring) % 4) / 1.3; if (ph < 1) rings.push({ pos: rp[i], ph }); });
+    riders.forEach((r, i) => { const ph = ((sec + r.ping) % READ_EVERY) / 1.4; if (ph < 1) rings.push({ pos: rp[i].pos, pm: pmOfWay(rp[i].way), ph }); });
     layers.push(new deck.ScatterplotLayer({
       id: "rider-rings", data: rings, getPosition: d => d.pos, stroked: true, filled: false,
-      getRadius: d => 12 + 85 * d.ph, getLineColor: d => [...color(d.pos[2]), Math.round(230 * (1 - d.ph) * (0.35 + 0.65 * m))],
-      lineWidthMinPixels: 1.6, radiusMaxPixels: 46, updateTriggers: { getRadius: now, getLineColor: now },
+      getRadius: d => 10 + 70 * d.ph, getLineColor: d => [...color(d.pm), Math.round(200 * (1 - d.ph))],
+      lineWidthMinPixels: 1.4, radiusMaxPixels: 40, updateTriggers: { getRadius: now, getLineColor: now },
+    }));
+    // Featured readings (the ones in the live list): the street lights up, a big ring and a label
+    const live = S.route ? [] : events.filter(e => now - e.born < 3000); // in the route view, keep the map clear
+    layers.push(new deck.PathLayer({
+      id: "event-streets", data: live.flatMap(e => e.street.map(path => ({ path, born: e.born }))), getPath: d => d.path, getWidth: 16, widthUnits: "meters", widthMinPixels: 4, capRounded: true, jointRounded: true,
+      getColor: d => { const a = Math.max(0, 1 - (now - d.born) / 3000); return [255, 255, 255, Math.round(220 * a * a)]; },
+      updateTriggers: { getColor: now },
     }));
     layers.push(new deck.ScatterplotLayer({
-      id: "rider-glow", data: rp, getPosition: d => [d[0], d[1]], getRadius: 30, radiusMinPixels: 5, radiusMaxPixels: 12,
+      id: "event-rings", data: live, getPosition: d => d.rider === null ? d.pos : rp[d.rider].pos, stroked: true, filled: false,
+      getRadius: d => { const ph = Math.min(1, (now - d.born) / 1400); return 15 + 160 * ph; },
+      getLineColor: d => { const ph = Math.min(1, (now - d.born) / 1400); return [...color(d.pm), Math.round(255 * (1 - ph))]; },
+      lineWidthMinPixels: 2.5, radiusMaxPixels: 90, updateTriggers: { getRadius: now, getLineColor: now, getPosition: now },
+    }));
+    layers.push(new deck.ScatterplotLayer({
+      id: "rider-glow", data: rp, getPosition: d => d.pos, getRadius: 30, radiusMinPixels: 5, radiusMaxPixels: 12,
       getFillColor: [255, 236, 190, 55], updateTriggers: { getPosition: now },
     }));
     layers.push(new deck.ScatterplotLayer({
-      id: "riders", data: rp, getPosition: d => [d[0], d[1]], getRadius: 9, radiusMinPixels: 2.6, radiusMaxPixels: 5,
+      id: "riders", data: rp, getPosition: d => d.pos, getRadius: 9, radiusMinPixels: 2.6, radiusMaxPixels: 5,
       getFillColor: [255, 250, 238, 255], updateTriggers: { getPosition: now },
     }));
+    const labelList = live.map(e => ({ id: "e" + e.born, pos: [...rp[e.rider].pos, 0], dy: -12, cls: "ev", op: fade(now - e.born),
+      bg: css(color(e.pm)), text: `${riderName(e.rider)} · ${nm(streets.get(e.key))} · ${e.pm}` }));
 
-    // 4. Selected street (and the cleaner one nearby) rise as walls
-    if (S.sel && walls.length) {
+    // 4. Route: the fastest route (red) and the clean route (green) draw themselves on the map
+    if (S.route && S.route.fast) {
+      const rt = S.route, age = now - rt.born;
+      const pF = ease(clamp01(age / 1500)), pC = ease(clamp01((age - 900) / 2000));
+      const trip = (id, r, p, col, width) => new deck.TripsLayer({
+        id, data: [r], getPath: d => d.coords, getTimestamps: d => d.ts, currentTime: p, trailLength: 2, fadeTrail: false,
+        getColor: col, widthMinPixels: width, jointRounded: true, capRounded: true, updateTriggers: { currentTime: p } });
+      layers.push(trip("route-fast", rt.fast, pF, [239, 68, 68, 230], 6));
+      layers.push(trip("route-clean-glow", rt.clean, pC, [52, 211, 153, 70], 20));
+      layers.push(trip("route-clean", rt.clean, pC, [110, 231, 183, 255], 7));
+      const ends = [{ p: rt.clean.coords[0], c: [255, 250, 238] }, { p: rt.clean.coords[rt.clean.coords.length - 1], c: [52, 211, 153] }];
+      layers.push(new deck.ScatterplotLayer({ id: "route-ends", data: ends, getPosition: d => d.p, getRadius: 8, radiusMinPixels: 7, radiusMaxPixels: 11,
+        getFillColor: d => d.c, stroked: true, getLineColor: [17, 19, 25], lineWidthMinPixels: 2.5 }));
+      if (age > 3200) { // a dot rides the clean route
+        const f = ((age - 3200) / 6000) % 1;
+        layers.push(new deck.ScatterplotLayer({ id: "route-dot", data: [pointAt(rt.clean, f)], getPosition: d => d, getRadius: 10, radiusMinPixels: 6, radiusMaxPixels: 9,
+          getFillColor: [255, 255, 255], updateTriggers: { getPosition: now } }));
+      }
+      const T = t(), op = clamp01((age - 2600) / 500);
+      if (op > 0) {
+        labelList.push({ id: "rf", pos: [...pointAt(rt.fast, 0.55), 0], dy: -8, cls: "pin", op, bg: "rgb(248,113,113)", text: T.fastLbl(Math.round(rt.fast.T / 60)) });
+        labelList.push({ id: "rc", pos: [...pointAt(rt.clean, 0.5), 0], dy: -8, cls: "pin", op, bg: "rgb(110,231,183)", text: T.cleanLbl(Math.round(rt.clean.T / 60)) });
+        labelList.push({ id: "rto", pos: [...rt.clean.coords[rt.clean.coords.length - 1], 0], dy: -14, cls: "wl", op, bg: "rgb(16,122,87)", text: placeName(rt.place) });
+      }
+    }
+
+    // 5. Selected street (and the cleaner one nearby) rise as walls
+    if (S.sel && walls.length && !S.route) {
       layers.push(new deck.SolidPolygonLayer({
         id: "walls", data: walls, getPolygon: d => d.poly, extruded: true,
         getElevation: d => d.pm, elevationScale: 0.42 * selP,
         getFillColor: d => [...d.c, 240], material: { ambient: 0.6, diffuse: 0.55, shininess: 24, specularColor: [60, 60, 60] },
       }));
-      layers.push(new deck.TextLayer({
-        id: "wall-labels", data: wallLabels,
-        getPosition: d => [d.pos[0], d.pos[1], d.pm * 0.42 * selP + 12],
-        getText: d => d.text, getSize: 21, fontFamily: '"DM Sans", sans-serif', fontWeight: 700,
-        getColor: [255, 255, 255, Math.round(255 * selP)], background: true,
-        getBackgroundColor: d => [...color(d.pm), Math.round(240 * selP)], backgroundPadding: [10, 6],
-        getAlignmentBaseline: "bottom", billboard: true, characterSet: "auto",
-        updateTriggers: { getPosition: selP, getColor: selP, getBackgroundColor: selP },
-      }));
+      for (const w of wallLabels) labelList.push({ id: "w" + w.key, pos: [w.pos[0], w.pos[1], w.pm * 0.42 * selP + 12], dy: -6, cls: "wl", op: selP,
+        bg: css(color(w.pm)), text: `${nm(streets.get(w.key))} · ${w.pm}` });
     }
     overlay.setProps({ layers });
+    placeLabels(labelList);
 
     if (clock == null) requestAnimationFrame(frame);
   }
 
   // ---------- Live counters ----------
-  let ago = 2;
+  let ago = 2, online = 287;
+  function renderLive() { $("liveTxt").innerHTML = t().live(online, ago); }
   setInterval(() => {
-    ago = ago >= 6 ? 1 : ago + 1;
-    $("ago").textContent = ago;
-    $("online").textContent = 280 + Math.floor(Math.random() * 14);
+    ago = Math.min(ago + 1, 9);
+    online = 280 + Math.floor(Math.random() * 14);
+    renderLive();
     if (S.sel) { const el = document.querySelector("#panel .bignum .n"); const st = streets.get(S.sel); if (el && st) el.textContent = Math.round(st.pm + (Math.random() - 0.5) * 4); }
   }, 1000);
 
@@ -384,28 +646,103 @@
     return best;
   }
   function streetPanel(st, near) {
-    const c = color(st.pm);
+    S.near = near; S.alerted = S.alerted === st.key ? st.key : null;
+    const c = color(st.pm), T = t();
     const d = new Date(), f = h => `${String((d.getHours() + 24 + h) % 24).padStart(2, "0")}:00`;
     $("panel").innerHTML = `
-      <div class="k">Your street</div>
-      <div class="pname">${short(st.name)}</div>
-      <div class="bignum"><span class="n">${st.pm}</span><span class="u">PM2.5 µg/m³</span></div>
+      <button class="close" id="closeBtn" aria-label="${T.close}">×</button>
+      <div class="k">${T.yourStreet}</div>
+      <div class="pname">${nm(st)}</div>
+      <div class="bignum"><span class="n">${st.pm}</span><span class="u">${T.unit}</span></div>
       <span class="badge" style="background:${css(c)}">${band(st.pm)}</span>
-      <div class="meta"><span class="dot"></span>Measured by ${st.riders} riders in the last 10 minutes</div>
-      <div class="spark"><div class="k">Last 12 hours</div>${sparkSVG(st)}<div class="ax"><span>${f(-12)}</span><span>${f(-6)}</span><span>now</span></div></div>
-      ${near ? `<div class="near" id="nearBtn"><div class="t">Cleaner air nearby</div>
-        <div class="r"><span class="nm">${short(near.name)}</span><span class="v" style="color:${css(color(near.pm))}">${near.pm}</span></div>
-        <div class="d">${Math.round(distM(near.c, st.c) / 10) * 10} m away · ${(st.pm / near.pm).toFixed(1).replace(".0", "")}× less smoke</div></div>` : ""}
-      <button class="cta" id="alertBtn">Alert me on LINE</button>`;
+      <div class="meta"><span class="dot"></span>${T.measured(st.riders)}</div>
+      <div class="spark"><div class="k">${T.last12}</div>${sparkSVG(st)}<div class="ax"><span>${f(-12)}</span><span>${f(-6)}</span><span>${T.now}</span></div></div>
+      ${near ? `<div class="near" id="nearBtn"><div class="t">${T.cleaner}</div>
+        <div class="r"><span class="nm">${nm(near)}</span><span class="v" style="color:${css(color(near.pm))}">${near.pm}</span></div>
+        <div class="d">${T.away(Math.round(distM(near.c, st.c) / 10) * 10, (st.pm / near.pm).toFixed(1).replace(".0", ""))}</div></div>` : ""}
+      <button class="cta ${S.alerted ? "done" : ""}" id="alertBtn">${S.alerted ? T.alertOn(nm(st)) : T.alert}</button>
+      <button class="cta ghost" id="routeBtn">${T.routeFrom}</button>`;
+    S.view = "street";
     if (near) $("nearBtn").onclick = () => select(near.key, true);
-    $("alertBtn").onclick = () => alertMe(st, near);
+    $("alertBtn").onclick = () => { if (!S.alerted) alertMe(st, near); };
+    $("closeBtn").onclick = () => clearSel(false);
+    $("routeBtn").onclick = () => routeChooser(st);
     $("panel").classList.remove("off");
   }
-  function alertMe(st, near) {
-    const b = $("alertBtn"); b.classList.add("done"); b.textContent = "✓ Alerts on for " + short(st.name);
+  function routeChooser(st) {
+    const T = t(); S.view = "choose";
+    $("panel").innerHTML = `
+      <button class="close" id="closeBtn" aria-label="${T.close}">×</button>
+      <button class="back" id="backBtn">${T.back}</button>
+      <div class="k">${T.routeTitle}</div>
+      <div class="pname">${T.whereTo}</div>
+      ${PLACES.map(pl => `<div class="row" data-id="${pl.id}"><span class="nm">${placeName(pl)}</span><span>→</span></div>`).join("")}`;
+    $("closeBtn").onclick = () => clearSel(false);
+    $("backBtn").onclick = () => streetPanel(st, S.near);
+    $("panel").querySelectorAll(".row").forEach(el => el.onclick = () => startRoute(st, PLACES.find(p => p.id === el.dataset.id)));
+  }
+  function routeSummary(rt) {
+    const pct = Math.round((1 - rt.clean.E / rt.fast.E) * 100), extra = Math.round((rt.clean.T - rt.fast.T) / 60);
+    // the worst named street on the fastest route that the clean route does not use
+    const score = new Map(), add = (i, sign) => { const k = segs[i].key; if (k.startsWith("#") || k === rt.st.key) return; score.set(k, (score.get(k) || 0) + sign * segs[i].len * segs[i].pm); };
+    rt.fast.segList.forEach(i => add(i, 1)); rt.clean.segList.forEach(i => add(i, -1));
+    let av = null, bs = 20000; for (const [k, v] of score) if (v > bs) { bs = v; av = k; }
+    return { pct, extra, avoid: av ? streets.get(av) : null };
+  }
+  function routePanel() {
+    const rt = S.route, T = t(), sm = routeSummary(rt); S.view = "route";
+    const mins = r => Math.max(1, Math.round(r.T / 60));
+    $("panel").innerHTML = `
+      <button class="close" id="closeBtn" aria-label="${T.close}">×</button>
+      <button class="back" id="backBtn">${T.back}</button>
+      <div class="k">${T.routeTitle}</div>
+      <div class="pname" style="font-size:22px">${nm(rt.st)} → ${placeName(rt.place)}</div>
+      <div class="opt clean"><div><div class="l"><i style="background:#6ee7b7"></i>${T.cleanName}</div><div class="s">${T.minAir(mins(rt.clean), Math.round(rt.clean.avg))}</div></div><div class="v" style="color:${css(color(rt.clean.avg))}">${Math.round(rt.clean.avg)}</div></div>
+      <div class="opt fast"><div><div class="l"><i style="background:#f87171"></i>${T.fastName}</div><div class="s">${T.minAir(mins(rt.fast), Math.round(rt.fast.avg))}</div></div><div class="v" style="color:${css(color(rt.fast.avg))}">${Math.round(rt.fast.avg)}</div></div>
+      <div class="gain">${sm.pct >= 5 ? T.gain(sm.pct, sm.extra) : T.same}</div>
+      ${sm.avoid && sm.pct >= 5 ? `<div class="avoid">${T.avoid(nm(sm.avoid))}</div>` : ""}
+      <button class="cta ${rt.sent ? "done" : ""}" id="sendBtn">${rt.sent ? T.sent : T.sendRoute}</button>`;
+    $("closeBtn").onclick = () => clearSel(false);
+    $("backBtn").onclick = () => select(rt.st.key, true);
+    $("sendBtn").onclick = () => {
+      if (rt.sent) return; rt.sent = true; $("sendBtn").classList.add("done"); $("sendBtn").textContent = t().sent;
+      routeToast(); setTimeout(() => $("toast").classList.add("on"), 1500); setTimeout(() => $("toast").classList.remove("on"), 10000);
+    };
+    $("panel").classList.remove("off");
+  }
+  function routeToast() {
+    const rt = S.route, sm = routeSummary(rt);
+    $("toastBody").innerHTML = t().toastRoute(placeName(rt.place), Math.max(1, Math.round(rt.clean.T / 60)), sm.pct, sm.avoid ? nm(sm.avoid) : "");
+  }
+  function startRoute(st, place) {
+    const token = ++S.token;
+    // start on the street itself: the point of the street nearest to its middle
+    let src = -1, bd = Infinity;
+    for (const i of st.segs) for (const q of segs[i].path) { const n = nodeId.get(Math.round(q[0] * 1e5) + "," + Math.round(q[1] * 1e5)); if (n !== undefined && mainNet[n]) { const d = distM(q, st.c); if (d < bd) { bd = d; src = n; } } }
+    if (src < 0) src = nearestNode(st.c);
+    const dst = nearestNode(place.pos);
+    const fast = shortest(src, dst, false), clean = shortest(src, dst, true);
+    S.sel = st.key; S.route = { st, place, fast, clean, born: Infinity, sent: false };
+    $("panel").classList.add("off"); $("toast").classList.remove("on");
+    let x0 = 180, y0 = 90, x1 = -180, y1 = -90;
+    for (const p of [...fast.coords, ...clean.coords]) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+    const wide = innerWidth > 760;
+    const cam = map.cameraForBounds([[x0, y0], [x1, y1]], { bearing: -15, maxZoom: 16.5,
+      padding: wide ? { top: 150, bottom: 90, left: 340, right: 410 } : { top: 140, bottom: innerHeight * 0.5, left: 30, right: 30 } });
+    const arrive = () => { if (token !== S.token) return; S.route.born = clock == null ? performance.now() : clock; routePanel(); };
+    if (clock != null || !cam) { if (cam) map.jumpTo({ ...cam, pitch: 48 }); arrive(); return; }
+    map.flyTo({ center: cam.center, zoom: cam.zoom, bearing: -15, pitch: 48, duration: 3000, curve: 1.2, easing: ease, essential: true });
+    map.once("moveend", arrive);
+  }
+  function toastText(st, near) {
     $("toastBody").innerHTML = near
-      ? `Smoke on <b>${short(st.name)}</b> is <b>${st.pm}</b> now. <b>${short(near.name)}</b>, ${Math.round(distM(near.c, st.c) / 10) * 10} m away, is <b>${near.pm}</b>. Take ${short(near.name)}.`
-      : `Smoke on <b>${short(st.name)}</b> is <b>${st.pm}</b> now. We will tell you when it is clean.`;
+      ? t().toastNear(nm(st), st.pm, nm(near), Math.round(distM(near.c, st.c) / 10) * 10, near.pm)
+      : t().toastOnly(nm(st), st.pm);
+  }
+  function alertMe(st, near) {
+    S.alerted = st.key;
+    const b = $("alertBtn"); b.classList.add("done"); b.textContent = t().alertOn(nm(st));
+    toastText(st, near);
     setTimeout(() => $("toast").classList.add("on"), 1800);
     setTimeout(() => $("toast").classList.remove("on"), 10000);
   }
@@ -415,9 +752,9 @@
     const st = streets.get(key); if (!st) return;
     const near = cleanerNear(st);
     const token = ++S.token;
-    S.sel = key; S.selT = Infinity;
+    S.sel = key; S.selT = Infinity; S.alerted = null; S.route = null;
     walls = wallPolys([key, near && near.key].filter(Boolean));
-    const lab = s => { const ss = s.segs.map(i => segs[i]); const mid = ss[Math.floor(ss.length / 2)].path[0]; return { pos: mid, pm: s.pm, text: `${short(s.name)} · ${s.pm}` }; };
+    const lab = s => { const ss = s.segs.map(i => segs[i]); const mid = ss[Math.floor(ss.length / 2)].path[0]; return { key: s.key, pos: mid, pm: s.pm }; };
     wallLabels = [lab(st), near && lab(near)].filter(Boolean);
     $("panel").classList.add("off"); $("toast").classList.remove("on");
     const arrive = () => {
@@ -436,10 +773,10 @@
       duration: 4200, curve: 1.25, easing: ease, essential: true });
     map.once("moveend", arrive);
   }
-  function clearSel() {
-    S.token++; S.sel = null; S.selT = Infinity; walls = []; wallLabels = [];
+  function clearSel(flyHome) {
+    S.token++; S.sel = null; S.selT = Infinity; S.alerted = null; S.route = null; walls = []; wallLabels = [];
     $("panel").classList.add("off"); $("toast").classList.remove("on"); $("search").value = "";
-    map.flyTo({ ...START, duration: 3000, curve: 1.3, easing: ease, essential: true });
+    if (flyHome) map.flyTo({ ...START, duration: 3000, curve: 1.3, easing: ease, essential: true });
   }
 
 
@@ -447,18 +784,20 @@
   const inp = $("search"), res = $("results");
   let hits = [], hi = 0;
   function renderHits() {
-    res.innerHTML = hits.map((s, i) => `<div class="res ${i === hi ? "sel" : ""}" data-i="${i}"><span>${short(s.name)}</span><span class="pm" style="background:${css(color(s.pm))}">${s.pm}</span></div>`).join("");
+    res.innerHTML = hits.map((s, i) => `<div class="res ${i === hi ? "sel" : ""}" data-i="${i}"><span>${nm(s)}</span><span class="pm" style="background:${css(color(s.pm))}">${s.pm}</span></div>`).join("");
     res.classList.toggle("on", hits.length > 0);
     res.querySelectorAll(".res").forEach(el => el.onmousedown = e => { e.preventDefault(); choose(+el.dataset.i); });
   }
-  function choose(i) { const s = hits[i]; if (!s) return; inp.value = short(s.name); res.classList.remove("on"); inp.blur(); select(s.key, true); }
+  function choose(i) { const s = hits[i]; if (!s) return; inp.value = nm(s); res.classList.remove("on"); inp.blur(); select(s.key, true); }
   inp.addEventListener("input", () => {
     const q = inp.value.trim().toLowerCase().replace(/^nimman\b/, "nimmanhaemin road");
     hi = 0;
     if (!q) { hits = []; renderHits(); return; }
     const words = q.split(/\s+/);
-    hits = named.filter(s => { const n = s.name.toLowerCase(); return words.every(w => n.includes(w)); })
-      .sort((a, b) => a.name.length - b.name.length).slice(0, 8);
+    const words2 = inp.value.trim().replace(/^นิมมานฯ?/, "นิมมาน").split(/\s+/);
+    hits = named.filter(s => { const n = s.name.toLowerCase(), th = s.nameTh || "";
+        return words.every(w => n.includes(w)) || (th && words2.every(w => th.includes(w))); })
+      .sort((a, b) => nm(a).length - nm(b).length).slice(0, 8);
     renderHits();
   });
   inp.addEventListener("keydown", e => {
@@ -472,14 +811,43 @@
   // ---------- Presenter keys (not shown on screen) ----------
   window.addEventListener("keydown", e => {
     if (document.activeElement === inp) return;
-    if (e.key === "s" || e.key === "S") { inp.value = "Nimman Soi 7"; select("Nimmanhaemin Road Soi 7", true); }
+    if (e.key === "s" || e.key === "S") { inp.value = nm(streets.get("Nimmanhaemin Road Soi 7")); select("Nimmanhaemin Road Soi 7", true); }
+    if (e.key === "l" || e.key === "L") setLang(lang === "en" ? "th" : "en");
+    if (e.key === "r" || e.key === "R") { const st = streets.get(S.sel || "Nimmanhaemin Road Soi 7"); S.near = cleanerNear(st); startRoute(st, PLACES[0]); }
     if (e.key === "a" || e.key === "A") { const b = $("alertBtn"); if (b) b.click(); }
-    if (e.key === "Escape") clearSel();
+    if (e.key === "Escape") clearSel(true);
     if (e.key === "/") { e.preventDefault(); inp.focus(); }
   });
 
+  // ---------- Language ----------
+  function setLang(l) {
+    lang = l; try { localStorage.setItem("fahsai-lang", l); } catch (e) {}
+    document.documentElement.lang = l;
+    const T = t();
+    $("brand").textContent = brand(); $("toastApp").textContent = brand(); document.title = brand();
+    inp.placeholder = T.search;
+    $("lgTitle").textContent = T.lgTitle; $("lgRider").textContent = T.lgRider; $("lgSmoke").textContent = T.lgSmoke;
+    $("feedTitle").textContent = T.feedTitle; $("toastNow").textContent = T.now;
+    document.querySelectorAll("#lang button").forEach(b => b.classList.toggle("on", b.dataset.l === l));
+    renderLive(); renderFeed(false);
+    if (S.sel) {
+      const st = streets.get(S.sel), open = !$("panel").classList.contains("off");
+      if (open) { if (S.view === "route" && S.route) routePanel(); else if (S.view === "choose") routeChooser(st); else streetPanel(st, S.near); }
+      inp.value = nm(st);
+      if (S.route && S.route.sent) routeToast(); else if (S.alerted) toastText(st, S.near);
+    }
+    else if (inp.value) inp.value = "";
+    if (hits.length) renderHits();
+  }
+  document.querySelectorAll("#lang button").forEach(b => b.onclick = () => setLang(b.dataset.l));
+  setLang(lang);
+
   // For still pictures on a machine with no graphics card: freeze time and draw 1 frame.
-  window.__still = (ms, setup) => { clock = T0 + ms; if (setup) setup({ select }); if (S.sel) S.selT = clock - 5000; frame(clock); };
+  window.__still = (ms, setup, readings = 0) => {
+    clock = T0 + ms; if (setup) setup({ select, startRoute, streets, PLACES }); if (S.route) S.route.born = clock - 8000; if (S.sel) S.selT = clock - 5000; frame(clock);
+    for (let i = 0; i < readings; i++) { clock = T0 + ms - 400 * (readings - i); pushReading(); }
+    clock = T0 + ms; frame(clock);
+  };
   map.on("load", () => document.fonts.ready.then(() => { if (!params.has("still")) requestAnimationFrame(frame); }));
 })();
 </script>
