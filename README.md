@@ -14,14 +14,17 @@ A stage prototype for Hack on the Rock 2026, Chiang Mai.
 6. "Clean route from here": choose a place, and the map draws the fastest route (red) and the clean route (green).
 7. "Alert me on LINE" and "Send route to LINE" show example alerts.
 8. Thai / English switch at the top right.
+9. Light and dark map (the sun / moon button at the top right). Light is the default.
 
 ## Keys for the presenter
 - **S**: fly to Nimman Soi 7
 - **R**: clean route to Tha Phae Gate
 - **A**: send the alert
 - **L**: switch Thai / English
+- **T**: switch light / dark
 - **Esc**: back to the city
 - Add `?name=Other` to the address to show a different product name.
+- Add `?theme=dark` to start in dark mode.
 - The riders move at real speed. Add `?speed=3` to the address to make them 3 times faster.
 
 ## Data
