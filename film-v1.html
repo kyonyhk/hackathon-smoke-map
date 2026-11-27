@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SoiSmog Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,700&family=Cal+Sans&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/deck.gl@9.0.16/dist.min.js"></script>
+<script src="data.js"></script>
+<style>
+  :root {
+    --ink: #f4f1ea;
+    --ink-soft: rgba(244, 241, 234, 0.72);
+    --ink-faint: rgba(244, 241, 234, 0.45);
+    --glass: rgba(18, 20, 26, 0.62);
+    --line: rgba(244, 241, 234, 0.14);
+    --font-body: "DM Sans", system-ui, sans-serif;
+    --font-head: "Cal Sans", "DM Sans", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  html, body { margin: 0; height: 100%; background: #0b0c10; color: var(--ink); font-family: var(--font-body); overflow: hidden; }
+  #map { position: fixed; inset: 0; }
+  .maplibregl-ctrl-attrib { background: rgba(0,0,0,0.4) !important; font-size: 10px; }
+  .maplibregl-ctrl-attrib a { color: var(--ink-faint) !important; }
+
+  /* The one-number smoke layer */
+  #fog {
+    position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 55%, rgba(150,146,140,0.55), rgba(110,106,100,0.78) 70%);
+    backdrop-filter: blur(2.5px) saturate(0.4);
+    -webkit-backdrop-filter: blur(2.5px) saturate(0.4);
+    transition: opacity 1.6s ease;
+  }
+  #city {
+    position: fixed; left: 50%; top: 46%; transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none;
+    transition: opacity 1.1s ease, transform 1.4s cubic-bezier(.6,0,.3,1);
+    text-shadow: 0 2px 24px rgba(0,0,0,0.35);
+  }
+  #city .place { font-family: var(--font-head); font-size: clamp(22px, 3vw, 40px); letter-spacing: 0.02em; }
+  #city .num { font-family: var(--font-head); font-size: clamp(110px, 17vw, 240px); line-height: 0.95; margin: 6px 0; }
+  #city .unit { font-size: clamp(14px, 1.4vw, 20px); color: var(--ink-soft); }
+  #city .sub { margin-top: 18px; font-size: clamp(15px, 1.6vw, 22px); color: var(--ink); background: rgba(0,0,0,0.28); display: inline-block; padding: 6px 14px; border-radius: 999px; }
+
+  .caption {
+    position: fixed; left: 50%; top: 7vh; transform: translateX(-50%) translateY(-8px);
+    font-family: var(--font-head); font-size: clamp(22px, 2.6vw, 38px);
+    opacity: 0; transition: opacity .7s ease, transform .7s ease; pointer-events: none;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.7); white-space: nowrap;
+  }
+  .caption.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  #counter {
+    position: fixed; left: 24px; top: 24px; display: flex; gap: 22px;
+    background: var(--glass); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 18px; opacity: 0; transition: opacity .6s ease;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  #counter.on { opacity: 1; }
+  #counter .k { font-size: 12px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .08em; }
+  #counter .v { font-family: var(--font-mono); font-size: 24px; margin-top: 2px; }
+
+  #legend {
+    position: fixed; right: 24px; bottom: 38px; width: 240px;
+    background: var(--glass); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px;
+    opacity: 0; transition: opacity .6s ease; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  #legend.on { opacity: 1; }
+  #legend .k { font-size: 12px; color: var(--ink-soft); margin-bottom: 8px; }
+  #legend .bar { height: 10px; border-radius: 6px; background: linear-gradient(90deg, #34d399 0%, #34d399 18%, #facc15 34%, #fb923c 55%, #ef4444 77%, #be185d 100%); }
+  #legend .ticks { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); margin-top: 5px; }
+
+  #title {
+    position: fixed; left: 40px; bottom: 56px; max-width: 620px;
+    opacity: 0; transform: translateY(12px); transition: opacity .9s ease, transform .9s ease;
+  }
+  #title.on { opacity: 1; transform: translateY(0); }
+  #title .name { font-family: var(--font-head); font-size: clamp(44px, 5.4vw, 80px); line-height: 1; }
+  #title .tag { font-size: clamp(16px, 1.6vw, 22px); color: var(--ink-soft); margin-top: 10px; }
+  #title .tag b { color: var(--ink); font-weight: 700; }
+
+  #note { position: fixed; left: 24px; bottom: 12px; font-size: 11px; color: var(--ink-faint); pointer-events: none; }
+  #hint { position: fixed; right: 24px; top: 20px; font-size: 12px; color: var(--ink-faint); transition: opacity .4s; }
+  body.playing #hint { opacity: 0; }
+
+  /* Picture-by-picture recording: no CSS fades */
+  .capture *, .capture *::before { transition: none !important; }
+
+  @media (max-width: 640px) {
+    #counter { left: 16px; top: 16px; gap: 14px; padding: 10px 12px; }
+    #counter .v { font-size: 18px; }
+    #legend { right: 16px; width: 180px; }
+    #title { left: 16px; right: 16px; }
+    .caption { white-space: normal; text-align: center; width: calc(100% - 32px); }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="fog"></div>
+<div id="city">
+  <div class="place">Chiang Mai · PM2.5</div>
+  <div class="num" id="cityNum">120</div>
+  <div class="unit">µg/m³ · a bad day in March</div>
+  <div class="sub">The air apps today: 1 number for the whole city</div>
+</div>
+
+<div class="caption" id="cap1">300 riders. Almost every soi. Every day.</div>
+<div class="caption" id="cap2">Now every street has its own number.</div>
+<div class="caption" id="cap3">Two sois, about 60 metres apart.</div>
+
+<div id="counter">
+  <div><div class="k">Riders</div><div class="v" id="cRiders">0</div></div>
+  <div><div class="k">Streets measured</div><div class="v" id="cStreets">0</div></div>
+  <div><div class="k">Readings today</div><div class="v" id="cReads">0</div></div>
+</div>
+
+<div id="legend">
+  <div class="k">PM2.5 on each street (µg/m³)</div>
+  <div class="bar"></div>
+  <div class="ticks"><span>0</span><span>50</span><span>100</span><span>150</span><span>220+</span></div>
+</div>
+
+<div id="title">
+  <div class="name" id="brand">SoiSmog Live</div>
+  <div class="tag">The smoke map, street by street. <b>Made by 300 riders.</b></div>
+</div>
+
+<div id="note">Simulated rider data on real Chiang Mai streets · Streets © OpenStreetMap contributors</div>
+<div id="hint">Space: play · R: reset</div>
+
+<script>
+(() => {
+  const D = window.SOI_DATA;
+  const $ = id => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const brand = params.get("name");
+  $("cityNum").textContent = D.cityNumber;
+  if (brand) { document.getElementById("brand").textContent = brand; document.title = brand; }
+
+  // ---------- Map ----------
+  const START = { center: [98.982, 18.7905], zoom: 13.25, pitch: 42, bearing: -18 };
+  const map = new maplibregl.Map({
+    container: "map",
+    style: "https://tiles.openfreemap.org/styles/dark",
+    ...START,
+    maxPitch: 80,
+    antialias: true,
+    attributionControl: { compact: true },
+    interactive: true,
+  });
+
+  window.__map = map;
+  if (params.get("capture") === "1") document.documentElement.classList.add("capture");
+  map.on("load", () => {
+    // Doi Suthep and the hills: shaded relief from open elevation tiles.
+    map.addSource("dem", {
+      type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 14,
+      tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+    });
+    const firstSymbol = map.getStyle().layers.find(l => l.type === "symbol");
+    map.addLayer({
+      id: "hills", type: "hillshade", source: "dem",
+      paint: { "hillshade-exaggeration": 0.65, "hillshade-shadow-color": "#000000", "hillshade-highlight-color": "#3a3f4a", "hillshade-accent-color": "#15171c" },
+    }, firstSymbol && firstSymbol.id);
+    // 3D buildings
+    if (map.getLayer("building")) map.setLayoutProperty("building", "visibility", "none");
+    map.addLayer({
+      id: "buildings-3d", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", minzoom: 13,
+      paint: {
+        "fill-extrusion-color": "#262a33",
+        "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6],
+        "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+        "fill-extrusion-opacity": 0.85,
+      },
+    }, firstSymbol && firstSymbol.id);
+    // Quieter labels so the data reads first
+    for (const l of map.getStyle().layers) {
+      if (l.type === "symbol") {
+        try { map.setPaintProperty(l.id, "text-opacity", 0.55); } catch (e) {}
+      }
+    }
+  });
+
+  // ---------- Data ----------
+  const RAMP = [[0, [52, 211, 153]], [40, [52, 211, 153]], [75, [250, 204, 21]], [120, [251, 146, 60]], [170, [239, 68, 68]], [220, [190, 24, 93]], [300, [150, 20, 110]]];
+  function color(pm) {
+    for (let i = 1; i < RAMP.length; i++) {
+      if (pm <= RAMP[i][0]) {
+        const [a, ca] = RAMP[i - 1], [b, cb] = RAMP[i];
+        const t = (pm - a) / (b - a);
+        return ca.map((c, k) => Math.round(c + (cb[k] - c) * t));
+      }
+    }
+    return RAMP[RAMP.length - 1][1];
+  }
+
+  const HALF_W = 7; // metres each side of the street centre line
+  const M_LAT = 110600, M_LON = 105300;
+  const FOCUS = new Set(["Nimmanhaemin Road Soi 7", "Nimmanhaemin Road Soi 9"]);
+  const allWalls = D.segments.map(s => {
+    const [x1, y1, x2, y2, pm] = s;
+    const dx = (x2 - x1) * M_LON, dy = (y2 - y1) * M_LAT;
+    const len = Math.hypot(dx, dy) || 1;
+    const ox = (-dy / len) * HALF_W / M_LON, oy = (dx / len) * HALF_W / M_LAT;
+    return {
+      poly: [[x1 + ox, y1 + oy], [x2 + ox, y2 + oy], [x2 - ox, y2 - oy], [x1 - ox, y1 - oy]],
+      pm, c: color(pm), focus: FOCUS.has(D.names[s[5]]),
+    };
+  });
+  const walls = allWalls.filter(w => !w.focus);
+  const focusWalls = allWalls.filter(w => w.focus);
+
+  // Close-up labels for the 2 sois
+  const SOI7 = D.labels["Nimmanhaemin Road Soi 7"], SOI9 = D.labels["Nimmanhaemin Road Soi 9"];
+  const labelData = [
+    { pos: SOI7, pm: 232, text: "Nimman Soi 7 · 232" },
+    { pos: SOI9, pm: 44, text: "Nimman Soi 9 · 44" },
+  ];
+
+  // City bounding box for the flat smoke slab
+  const BBOX = [[98.955, 18.770], [99.008, 18.770], [99.008, 18.812], [98.955, 18.812]];
+
+  const overlay = new deck.MapboxOverlay({ interleaved: false, layers: [] });
+  map.addControl(overlay);
+
+  // ---------- Timeline ----------
+  const T = {
+    fogOut: 300,          // fog and number fade
+    ridersStart: 600, ridersEnd: 8600,
+    wallsStart: 6200, wallsEnd: 10200,
+    flyStart: 11200, flyEnd: 15800,
+    labels: 15000,
+    title: 16600,
+  };
+  const KEYS = [
+    { t: 0, ...START },
+    { t: 8600, center: [98.9815, 18.792], zoom: 13.55, pitch: 56, bearing: 14 },
+    { t: 11200, center: [98.979, 18.793], zoom: 13.7, pitch: 60, bearing: 24 },
+    { t: 15800, center: [98.9691, 18.7979], zoom: 17.0, pitch: 58, bearing: -28 },
+    { t: 26000, center: [98.9690, 18.7979], zoom: 17.15, pitch: 60, bearing: -18 },
+  ];
+
+  const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  const phase = (t, a, b) => clamp01((t - a) / (b - a));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function lerpAngle(a, b, t) { let d = ((b - a + 540) % 360) - 180; return a + d * t; }
+
+  function cameraAt(t) {
+    let i = 0;
+    while (i < KEYS.length - 2 && t > KEYS[i + 1].t) i++;
+    const A = KEYS[i], B = KEYS[i + 1];
+    const k = ease(phase(t, A.t, B.t));
+    return {
+      center: [lerp(A.center[0], B.center[0], k), lerp(A.center[1], B.center[1], k)],
+      zoom: lerp(A.zoom, B.zoom, k), pitch: lerp(A.pitch, B.pitch, k), bearing: lerpAngle(A.bearing, B.bearing, k),
+    };
+  }
+
+  const fmt = n => Math.round(n).toLocaleString("en-US");
+  const totalStreets = D.names.length;
+
+  function layersAt(t) {
+    const rp = phase(t, T.ridersStart, T.ridersEnd);
+    const time = rp * D.maxTime * 1.05;
+    const trailFade = 1 - 0.75 * phase(t, T.flyStart, T.flyEnd);
+    const wp = ease(phase(t, T.wallsStart, T.wallsEnd));
+    // Walls are tall in the city view, then shrink a bit for the street close-up
+    const closeUp = ease(phase(t, T.flyStart, T.flyEnd));
+    const elevScale = wp * lerp(1.25, 0.38, closeUp);
+    const slab = 1 - ease(phase(t, 0, 1400));
+    const layers = [];
+    if (slab > 0.01) {
+      layers.push(new deck.SolidPolygonLayer({
+        id: "slab", data: [{ poly: BBOX }], getPolygon: d => d.poly, extruded: true,
+        getElevation: 220, getFillColor: [165, 160, 152, Math.round(70 * slab)], material: false,
+      }));
+    }
+    layers.push(new deck.SolidPolygonLayer({
+      id: "walls", data: walls, getPolygon: d => d.poly, extruded: true,
+      getElevation: d => d.pm, elevationScale: elevScale * lerp(1, 0.18, closeUp),
+      getFillColor: d => [d.c[0], d.c[1], d.c[2], 235],
+      opacity: Math.min(1, wp * 2) * lerp(1, 0.4, closeUp), visible: wp > 0,
+      material: { ambient: 0.55, diffuse: 0.55, shininess: 24, specularColor: [60, 60, 60] },
+    }));
+    layers.push(new deck.SolidPolygonLayer({
+      id: "focus-walls", data: focusWalls, getPolygon: d => d.poly, extruded: true,
+      getElevation: d => d.pm, elevationScale: elevScale,
+      getFillColor: d => [d.c[0], d.c[1], d.c[2], 245],
+      opacity: Math.min(1, wp * 2), visible: wp > 0,
+      material: { ambient: 0.6, diffuse: 0.55, shininess: 24, specularColor: [60, 60, 60] },
+    }));
+    layers.push(new deck.TripsLayer({
+      id: "riders", data: D.trips, getPath: d => d.p, getTimestamps: d => d.t,
+      getColor: [255, 236, 190], opacity: 0.85 * trailFade, widthMinPixels: 2.2, widthMaxPixels: 4,
+      jointRounded: true, capRounded: true, trailLength: 0.06, currentTime: time, fadeTrail: true,
+      visible: t >= T.ridersStart,
+    }));
+    if (t >= T.labels) {
+      const lp = clamp01((t - T.labels) / 700);
+      layers.push(new deck.TextLayer({
+        id: "labels", data: labelData,
+        getPosition: d => [d.pos[0], d.pos[1], d.pm * elevScale + 14],
+        getText: d => d.text, getSize: 26, sizeUnits: "pixels",
+        fontFamily: '"DM Sans", sans-serif', fontWeight: 700,
+        getColor: [255, 255, 255, Math.round(255 * lp)],
+        background: true, getBackgroundColor: d => { const c = color(d.pm); return [c[0], c[1], c[2], Math.round(235 * lp)]; },
+        backgroundPadding: [12, 7], getTextAnchor: "middle", getAlignmentBaseline: "bottom",
+        billboard: true, characterSet: "auto",
+      }));
+    }
+    return { layers, rp, wp };
+  }
+
+  // ---------- Play ----------
+  let t0 = null, raf = null;
+  function render(now) {
+    const t = now - t0;
+    map.jumpTo(cameraAt(t));
+    const { layers, rp } = layersAt(t);
+    overlay.setProps({ layers });
+
+    $("fog").style.opacity = t > T.fogOut ? 0 : 1;
+    const city = $("city");
+    if (t > T.fogOut) { city.style.opacity = 0; city.style.transform = "translate(-50%, -62%) scale(0.85)"; }
+    $("counter").classList.toggle("on", t > T.ridersStart && t < T.title + 400);
+    $("cRiders").textContent = fmt(300 * clamp01(rp * 4));
+    $("cStreets").textContent = fmt(totalStreets * ease(rp));
+    $("cReads").textContent = fmt(186400 * ease(rp));
+    $("cap1").classList.toggle("on", t > 1200 && t < 6400);
+    $("cap2").classList.toggle("on", t > 7000 && t < 11000);
+    $("cap3").classList.toggle("on", t > 15200);
+    $("legend").classList.toggle("on", t > T.wallsStart + 800);
+    $("title").classList.toggle("on", t > T.title);
+
+    if (t < KEYS[KEYS.length - 1].t) raf = requestAnimationFrame(render);
+  }
+
+  function play() {
+    if (raf) return;
+    document.body.classList.add("playing");
+    t0 = performance.now();
+    raf = requestAnimationFrame(render);
+  }
+  function reset() {
+    if (raf) cancelAnimationFrame(raf);
+    raf = null; t0 = null;
+    document.body.classList.remove("playing");
+    map.jumpTo(START);
+    overlay.setProps({ layers: layersAt(0).layers.filter(l => l.id === "slab") });
+    $("fog").style.opacity = 1;
+    const city = $("city"); city.style.opacity = 1; city.style.transform = "translate(-50%, -50%)";
+    for (const id of ["counter", "cap1", "cap2", "cap3", "legend", "title"]) $(id).classList.remove("on");
+  }
+  // For still pictures: ?t=12000 shows that moment.
+  window.__seek = ms => { if (raf) cancelAnimationFrame(raf); raf = null; t0 = performance.now() - ms; render(performance.now()); if (raf) cancelAnimationFrame(raf); raf = null; };
+
+  window.addEventListener("keydown", e => {
+    if (e.code === "Space" || e.code === "Enter" || e.code === "ArrowRight") { e.preventDefault(); play(); }
+    if (e.key === "r" || e.key === "R") reset();
+  });
+  map.on("load", () => {
+    document.fonts.ready.then(() => {
+      reset();
+      if (params.get("auto") === "1") setTimeout(play, 800);
+      if (params.has("t")) setTimeout(() => window.__seek(Number(params.get("t"))), 300);
+    });
+  });
+})();
+</script>
+</body>
+</html>

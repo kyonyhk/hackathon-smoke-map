@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FahSai</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Cal+Sans&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/deck.gl@9.0.16/dist.min.js"></script>
+<script src="data.js"></script>
+<style>
+  :root {
+    --ink: #f4f1ea;
+    --ink-soft: rgba(244, 241, 234, 0.74);
+    --ink-faint: rgba(244, 241, 234, 0.48);
+    --glass: rgba(17, 19, 25, 0.72);
+    --glass-strong: rgba(17, 19, 25, 0.88);
+    --line: rgba(244, 241, 234, 0.13);
+    --font-body: "DM Sans", system-ui, sans-serif;
+    --font-head: "Cal Sans", "DM Sans", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --r: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b0c10; color: var(--ink); font-family: var(--font-body); overflow: hidden; }
+  button, input { font: inherit; color: inherit; }
+  #map { position: fixed; inset: 0; }
+  .maplibregl-ctrl-attrib { background: rgba(0,0,0,0.45) !important; font-size: 10px; }
+  .maplibregl-ctrl-attrib a { color: var(--ink-faint) !important; }
+  .glass { background: var(--glass); border: 1px solid var(--line); border-radius: var(--r); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+
+  /* Top bar */
+  #top { position: fixed; left: 20px; right: 20px; top: 18px; display: flex; gap: 14px; align-items: center; pointer-events: none; }
+  #top > * { pointer-events: auto; }
+  #brandbox { display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 12px; }
+  #logo { width: 34px; height: 34px; border-radius: 10px; background: radial-gradient(circle at 35% 35%, #fde68a, #f97316 45%, #be185d 100%); box-shadow: 0 0 18px rgba(249,115,22,0.45); }
+  #brand { font-family: var(--font-head); font-size: 22px; line-height: 1; }
+  #live { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+  #live i { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.6); } 70% { box-shadow: 0 0 0 9px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+  #live b { color: var(--ink); font-weight: 500; font-family: var(--font-mono); font-size: 12px; }
+
+  #searchbox { position: relative; flex: 1; max-width: 440px; margin: 0 auto; }
+  #search { width: 100%; padding: 14px 18px 14px 44px; border-radius: 999px; border: 1px solid var(--line); background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); font-size: 15.5px; outline: none; }
+  #search::placeholder { color: var(--ink-faint); }
+  #search:focus { border-color: rgba(244,241,234,0.4); }
+  #searchbox svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); opacity: 0.6; }
+  #results { position: absolute; left: 0; right: 0; top: calc(100% + 6px); padding: 6px; display: none; max-height: 320px; overflow: auto; background: var(--glass-strong); }
+  #results.on { display: block; }
+  .res { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; cursor: pointer; font-size: 14.5px; }
+  .res:hover, .res.sel { background: rgba(244,241,234,0.08); }
+  .res .pm { font-family: var(--font-mono); font-size: 13px; padding: 2px 8px; border-radius: 999px; color: #111; }
+
+
+
+  /* Side panel */
+  #panel { position: fixed; right: 20px; top: 92px; width: 340px; padding: 20px; transition: opacity .5s ease, transform .5s ease; max-height: calc(100vh - 150px); overflow: auto; }
+  #panel.off { opacity: 0; transform: translateX(16px); pointer-events: none; }
+  .k { font-size: 12px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .08em; }
+  .pname { font-family: var(--font-head); font-size: 26px; line-height: 1.1; margin: 6px 0 14px; }
+  .bignum { display: flex; align-items: baseline; gap: 10px; }
+  .bignum .n { font-family: var(--font-head); font-size: 68px; line-height: 0.9; }
+  .bignum .u { font-size: 13px; color: var(--ink-soft); }
+  .badge { display: inline-block; margin-top: 10px; padding: 4px 11px; border-radius: 999px; font-size: 13px; font-weight: 500; color: #111; }
+  .meta { margin-top: 12px; font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; }
+  .meta .dot { width: 7px; height: 7px; border-radius: 50%; background: #fde68a; box-shadow: 0 0 8px #fde68a; }
+  .spark { margin-top: 16px; }
+  .spark svg { width: 100%; height: 56px; display: block; }
+  .spark .ax { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-faint); margin-top: 3px; }
+  .near { margin-top: 16px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); cursor: pointer; }
+  .near:hover { background: rgba(52,211,153,0.14); }
+  .near .t { font-size: 12px; color: #6ee7b7; text-transform: uppercase; letter-spacing: .08em; }
+  .near .r { display: flex; justify-content: space-between; align-items: baseline; margin-top: 5px; }
+  .near .nm { font-weight: 700; font-size: 15.5px; }
+  .near .v { font-family: var(--font-head); font-size: 28px; }
+  .near .d { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+  .cta { margin-top: 16px; width: 100%; padding: 13px 16px; border-radius: 12px; border: 0; cursor: pointer; background: var(--ink); color: #111; font-weight: 700; font-size: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+  .cta.done { background: rgba(52,211,153,0.18); color: #a7f3d0; border: 1px solid rgba(52,211,153,0.45); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .stat { padding: 11px 12px; border-radius: 12px; background: rgba(244,241,234,0.05); }
+  .stat .v { font-family: var(--font-mono); font-size: 20px; margin-top: 3px; }
+  .hint { margin-top: 14px; font-size: 14px; color: var(--ink-soft); line-height: 1.45; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; cursor: pointer; }
+  .row:hover .nm { text-decoration: underline; }
+  .row .pm { font-family: var(--font-mono); font-size: 13px; padding: 2px 8px; border-radius: 999px; color: #111; }
+
+  /* Legend */
+  #legend { position: fixed; left: 20px; bottom: 34px; width: 250px; padding: 12px 16px; transition: opacity .5s; }
+  #legend.off { opacity: 0; }
+  #legend .bar { height: 9px; border-radius: 6px; margin-top: 8px; background: linear-gradient(90deg, #34d399 0%, #34d399 18%, #facc15 34%, #fb923c 55%, #ef4444 77%, #be185d 100%); }
+  #legend .ticks { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); margin-top: 5px; }
+  #legend .keys { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--ink-soft); }
+  #legend .keys span { display: flex; align-items: center; gap: 6px; }
+  #legend .keys i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* Alert toast (phone notification) */
+  #toast { position: fixed; right: 20px; bottom: 34px; width: 360px; padding: 14px 16px; border-radius: 18px; background: rgba(246, 246, 244, 0.97); color: #15171c; box-shadow: 0 18px 50px rgba(0,0,0,0.45); transform: translateY(calc(100% + 60px)); transition: transform .7s cubic-bezier(.2,.9,.25,1.15); }
+  #toast.on { transform: translateY(0); }
+  #toast .h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #555; }
+  #toast .h .app { width: 20px; height: 20px; border-radius: 6px; background: #06c755; display: grid; place-items: center; color: white; font-size: 10px; font-weight: 700; }
+  #toast .h .when { margin-left: auto; }
+  #toast .b { margin-top: 8px; font-size: 15px; line-height: 1.4; }
+  #toast .b b { font-weight: 700; }
+
+  #note { position: fixed; left: 20px; bottom: 10px; font-size: 11px; color: var(--ink-faint); pointer-events: none; }
+
+  @media (max-width: 760px) {
+    #top { left: 12px; right: 12px; top: 12px; flex-wrap: wrap; gap: 8px; }
+    #searchbox { order: 3; max-width: none; flex-basis: 100%; }
+    #panel { left: 12px; right: 12px; width: auto; top: auto; bottom: 30px; max-height: 46vh; }
+    #legend { display: none; }
+    #toast { left: 12px; right: 12px; width: auto; top: 12px; bottom: auto; transform: translateY(-160%); }
+    #toast.on { transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+
+<div id="top">
+  <div id="brandbox" class="glass">
+    <div id="logo"></div>
+    <div>
+      <div id="brand">FahSai</div>
+      <div id="live"><i></i><span><b id="online">287</b> riders online · updated <b id="ago">2</b> s ago</span></div>
+    </div>
+  </div>
+  <div id="searchbox">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+    <input id="search" placeholder="Search your soi, e.g. Nimman Soi 7" autocomplete="off" spellcheck="false">
+    <div id="results" class="glass"></div>
+  </div>
+</div>
+
+<div id="panel" class="glass off"></div>
+
+<div id="legend" class="glass">
+  <div class="k" style="text-transform:none;letter-spacing:.02em">PM2.5 (µg/m³)</div>
+  <div class="bar"></div>
+  <div class="ticks"><span>0</span><span>50</span><span>100</span><span>150</span><span>220+</span></div>
+  <div class="keys"><span><i style="background:#fff7e6;box-shadow:0 0 6px #fde68a"></i>Rider sending data</span><span><i style="background:rgba(239,68,68,.55)"></i>Smoke</span></div>
+</div>
+
+<div id="toast">
+  <div class="h"><div class="app">L</div><span>LINE · <span id="toastApp">FahSai</span></span><span class="when">now</span></div>
+  <div class="b" id="toastBody"></div>
+</div>
+
+
+<script>
+(() => {
+  const D = window.SOI_DATA;
+  const $ = id => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const BRAND = params.get("name") || "FahSai";
+  $("brand").textContent = BRAND; $("toastApp").textContent = BRAND; document.title = BRAND;
+
+  // ---------- Helpers ----------
+  const M_LAT = 110600, M_LON = 105300;
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const fmt = n => Math.round(n).toLocaleString("en-US");
+  function rng(seed) { let s = seed >>> 0 || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+  function hash(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; }
+  const RAMP = [[0, [52, 211, 153]], [40, [52, 211, 153]], [75, [250, 204, 21]], [120, [251, 146, 60]], [170, [239, 68, 68]], [220, [190, 24, 93]], [300, [150, 20, 110]]];
+  function color(pm) {
+    for (let i = 1; i < RAMP.length; i++) if (pm <= RAMP[i][0]) {
+      const [a, ca] = RAMP[i - 1], [b, cb] = RAMP[i], t = (pm - a) / (b - a);
+      return ca.map((c, k) => Math.round(c + (cb[k] - c) * t));
+    }
+    return RAMP[RAMP.length - 1][1];
+  }
+  const css = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+  // Thai Pollution Control Department bands for PM2.5 (24 h)
+  function band(pm) {
+    if (pm <= 15) return "Very good";
+    if (pm <= 25) return "Good";
+    if (pm <= 37.5) return "Moderate";
+    if (pm <= 75) return "Starts to affect health";
+    return "Affects health";
+  }
+  function distM(a, b) { return Math.hypot((a[0] - b[0]) * M_LON, (a[1] - b[1]) * M_LAT); }
+
+  // ---------- Streets ----------
+  const segs = D.segments.map(s => ({ path: [[s[0], s[1]], [s[2], s[3]]], pm: s[4], way: s[5], c: color(s[4]),
+    len: Math.hypot((s[2] - s[0]) * M_LON, (s[3] - s[1]) * M_LAT) }));
+  // Group by street name (a named street can be several OSM ways)
+  const streets = new Map();
+  segs.forEach((s, i) => {
+    const nm = D.names[s.way];
+    const key = nm || "#" + s.way;
+    let st = streets.get(key);
+    if (!st) { st = { key, name: nm || "Unnamed soi", segs: [], sum: 0, len: 0, cx: 0, cy: 0 }; streets.set(key, st); }
+    st.segs.push(i); st.sum += s.pm * s.len; st.len += s.len;
+    st.cx += (s.path[0][0] + s.path[1][0]) / 2 * s.len; st.cy += (s.path[0][1] + s.path[1][1]) / 2 * s.len;
+    s.key = key;
+  });
+  for (const st of streets.values()) {
+    st.pm = Math.round(st.sum / (st.len || 1));
+    st.c = [st.cx / (st.len || 1), st.cy / (st.len || 1)];
+    const r = rng(hash(st.key));
+    st.riders = 2 + Math.floor(r() * 8);
+    st.hist = Array.from({ length: 25 }, (_, i) => {
+      const day = 0.78 + 0.22 * Math.sin((i / 24) * Math.PI * 2 - 1.2);
+      return Math.max(15, st.pm * day * (0.9 + r() * 0.2));
+    });
+    st.hist[24] = st.pm;
+  }
+  const named = [...streets.values()].filter(s => !s.key.startsWith("#") && s.len > 60);
+  const short = n => n.replace("Nimmanhaemin Road", "Nimman").replace(" Road", " Rd");
+
+  // ---------- Smoke particles (soft puffs that drift) ----------
+  const puff = document.createElement("canvas"); puff.width = puff.height = 64;
+  { const g = puff.getContext("2d"), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.45, "rgba(255,255,255,0.45)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }
+  const PUFF_URL = puff.toDataURL();
+  const PUFF_MAP = { p: { x: 0, y: 0, width: 64, height: 64, mask: true } };
+
+  const R = rng(42);
+  const cum = []; let tot = 0;
+  for (const s of segs) { tot += s.len * Math.pow(s.pm / 100, 2.2); cum.push(tot); }
+  function pickSeg() { const x = R() * tot; let lo = 0, hi = cum.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cum[m] < x) lo = m + 1; else hi = m; } return segs[lo]; }
+  const gauss = () => (R() + R() + R() - 1.5) / 1.5;
+  const smoke = [];
+  for (let i = 0; i < 6500; i++) {
+    const s = pickSeg(), u = R();
+    const x = lerp(s.path[0][0], s.path[1][0], u) + gauss() * 55 / M_LON;
+    const y = lerp(s.path[0][1], s.path[1][1], u) + gauss() * 55 / M_LAT;
+    smoke.push({ x, y, z: 15 + R() * (40 + s.pm * 0.55), size: 110 + R() * 120, pm: s.pm, c: s.c, ph: R(), sp: 0.6 + R() * 0.8 });
+  }
+  const WIND = [-0.85, -0.5]; // drifting to the south-west
+  const DRIFT = 170; // metres
+
+  // ---------- Riders (live dots) ----------
+  const riders = D.trips.map((tr, i) => {
+    const r = rng(1000 + i), t0 = tr.t[0];
+    return { p: tr.p, t: tr.t.map(t => t - t0), v: tr.v, dur: tr.t[tr.t.length - 1] - t0, off: r() * 10, ring: r() * 4 };
+  });
+  const SPEED = 1 / 60; // trip-hours per real second (about 60x real time)
+  function riderAt(r, sec) {
+    let u = (sec * SPEED + r.off) % (2 * r.dur); if (u > r.dur) u = 2 * r.dur - u;
+    let lo = 0, hi = r.t.length - 1; while (lo < hi - 1) { const m = (lo + hi) >> 1; if (r.t[m] <= u) lo = m; else hi = m; }
+    const k = r.t[hi] > r.t[lo] ? (u - r.t[lo]) / (r.t[hi] - r.t[lo]) : 0;
+    return [lerp(r.p[lo][0], r.p[hi][0], k), lerp(r.p[lo][1], r.p[hi][1], k), r.v[hi]];
+  }
+
+  // ---------- Map ----------
+  const START = { center: [98.979, 18.7905], zoom: 13.35, pitch: 52, bearing: -18 };
+  const map = new maplibregl.Map({ container: "map", style: "https://tiles.openfreemap.org/styles/dark", ...START, maxPitch: 78, antialias: true, attributionControl: { compact: true } });
+  window.__map = map;
+  map.on("load", () => {
+    map.addSource("dem", { type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 14, tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"] });
+    const firstSymbol = map.getStyle().layers.find(l => l.type === "symbol");
+    map.addLayer({ id: "hills", type: "hillshade", source: "dem", paint: { "hillshade-exaggeration": 0.65, "hillshade-shadow-color": "#000", "hillshade-highlight-color": "#3a3f4a", "hillshade-accent-color": "#15171c" } }, firstSymbol && firstSymbol.id);
+    if (map.getLayer("building")) map.setLayoutProperty("building", "visibility", "none");
+    map.addLayer({ id: "buildings-3d", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", minzoom: 13,
+      paint: { "fill-extrusion-color": "#272b34", "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0], "fill-extrusion-opacity": 0.9 } }, firstSymbol && firstSymbol.id);
+    for (const l of map.getStyle().layers) if (l.type === "symbol") { try { map.setPaintProperty(l.id, "text-opacity", 0.5); } catch (e) {} }
+  });
+  const overlay = new deck.MapboxOverlay({ interleaved: false, layers: [], getCursor: ({ isHovering }) => isHovering ? "pointer" : "grab" });
+  map.addControl(overlay);
+
+  // ---------- State ----------
+  const S = { mode: 1, mix: 1, sel: null, selT: Infinity, token: 0 };
+
+  function wallPolys(keys) {
+    const out = [];
+    for (const key of keys) {
+      const st = streets.get(key); if (!st) continue;
+      for (const i of st.segs) {
+        const s = segs[i], [a, b] = s.path;
+        const dx = (b[0] - a[0]) * M_LON, dy = (b[1] - a[1]) * M_LAT, len = Math.hypot(dx, dy) || 1, W = 6;
+        const ox = (-dy / len) * W / M_LON, oy = (dx / len) * W / M_LAT;
+        out.push({ poly: [[a[0] + ox, a[1] + oy], [b[0] + ox, b[1] + oy], [b[0] - ox, b[1] - oy], [a[0] - ox, a[1] - oy]], pm: st.pm, c: color(st.pm) });
+      }
+    }
+    return out;
+  }
+  let walls = [], wallLabels = [];
+
+  // ---------- Render loop ----------
+  const T0 = performance.now();
+  const smokeParams = { depthWriteEnabled: false };
+  let clock = null; // for still pictures: a fixed time
+  function frame(nowReal) {
+    const now = clock == null ? nowReal : clock;
+    const sec = (now - T0) / 1000;
+    S.mix += (S.mode - S.mix) * (clock == null ? 0.045 : 1);
+    const m = S.mix;
+    const selP = S.sel ? ease(clamp01((now - S.selT) / 1100)) : 0;
+
+    const drift = p => { const f = (sec * 0.05 * p.sp + p.ph) % 1; return [(f - 0.5) * DRIFT, Math.sin(Math.PI * f)]; };
+    const layers = [];
+
+    // 1. Street lines on the ground
+    layers.push(new deck.PathLayer({
+      id: "streets", data: segs, getPath: d => d.path, pickable: m > 0.5,
+      getColor: d => m > 0.02 ? [...d.c, Math.round(lerp(40, 235, m))] : [120, 118, 112, 40],
+      getWidth: 9, widthUnits: "meters", widthMinPixels: 1.6, capRounded: true,
+      updateTriggers: { getColor: Math.round(m * 30) },
+      autoHighlight: true, highlightColor: [255, 255, 255, 200],
+      onClick: info => { if (info.object) select(info.object.key, true); },
+    }));
+
+    // 2. Smoke: soft coloured puffs that drift, thick over the bad streets
+    if (m > 0.01) layers.push(new deck.IconLayer({
+      id: "smoke", data: smoke, iconAtlas: PUFF_URL, iconMapping: PUFF_MAP, getIcon: () => "p",
+      getPosition: d => { const [o] = drift(d); return [d.x + WIND[0] * o / M_LON, d.y + WIND[1] * o / M_LAT, d.z]; },
+      getSize: d => d.size, sizeUnits: "meters", billboard: true, alphaCutoff: 0,
+      getColor: d => { const [, e] = drift(d); const a = clamp01((d.pm - 60) / 170); return [d.c[0], d.c[1], d.c[2], Math.round((10 + 34 * a) * e * m * (1 - 0.7 * selP))]; },
+      updateTriggers: { getPosition: now, getColor: now }, parameters: smokeParams,
+    }));
+
+    // 3. Riders: bright dots, with a ring each time they send a reading
+    const rp = riders.map(r => riderAt(r, sec));
+    const rings = [];
+    riders.forEach((r, i) => { const ph = ((sec + r.ring) % 4) / 1.3; if (ph < 1) rings.push({ pos: rp[i], ph }); });
+    layers.push(new deck.ScatterplotLayer({
+      id: "rider-rings", data: rings, getPosition: d => d.pos, stroked: true, filled: false,
+      getRadius: d => 12 + 85 * d.ph, getLineColor: d => [...color(d.pos[2]), Math.round(230 * (1 - d.ph) * (0.35 + 0.65 * m))],
+      lineWidthMinPixels: 1.6, radiusMaxPixels: 46, updateTriggers: { getRadius: now, getLineColor: now },
+    }));
+    layers.push(new deck.ScatterplotLayer({
+      id: "rider-glow", data: rp, getPosition: d => [d[0], d[1]], getRadius: 30, radiusMinPixels: 5, radiusMaxPixels: 12,
+      getFillColor: [255, 236, 190, 55], updateTriggers: { getPosition: now },
+    }));
+    layers.push(new deck.ScatterplotLayer({
+      id: "riders", data: rp, getPosition: d => [d[0], d[1]], getRadius: 9, radiusMinPixels: 2.6, radiusMaxPixels: 5,
+      getFillColor: [255, 250, 238, 255], updateTriggers: { getPosition: now },
+    }));
+
+    // 4. Selected street (and the cleaner one nearby) rise as walls
+    if (S.sel && walls.length) {
+      layers.push(new deck.SolidPolygonLayer({
+        id: "walls", data: walls, getPolygon: d => d.poly, extruded: true,
+        getElevation: d => d.pm, elevationScale: 0.42 * selP,
+        getFillColor: d => [...d.c, 240], material: { ambient: 0.6, diffuse: 0.55, shininess: 24, specularColor: [60, 60, 60] },
+      }));
+      layers.push(new deck.TextLayer({
+        id: "wall-labels", data: wallLabels,
+        getPosition: d => [d.pos[0], d.pos[1], d.pm * 0.42 * selP + 12],
+        getText: d => d.text, getSize: 21, fontFamily: '"DM Sans", sans-serif', fontWeight: 700,
+        getColor: [255, 255, 255, Math.round(255 * selP)], background: true,
+        getBackgroundColor: d => [...color(d.pm), Math.round(240 * selP)], backgroundPadding: [10, 6],
+        getAlignmentBaseline: "bottom", billboard: true, characterSet: "auto",
+        updateTriggers: { getPosition: selP, getColor: selP, getBackgroundColor: selP },
+      }));
+    }
+    overlay.setProps({ layers });
+
+    if (clock == null) requestAnimationFrame(frame);
+  }
+
+  // ---------- Live counters ----------
+  let ago = 2;
+  setInterval(() => {
+    ago = ago >= 6 ? 1 : ago + 1;
+    $("ago").textContent = ago;
+    $("online").textContent = 280 + Math.floor(Math.random() * 14);
+    if (S.sel) { const el = document.querySelector("#panel .bignum .n"); const st = streets.get(S.sel); if (el && st) el.textContent = Math.round(st.pm + (Math.random() - 0.5) * 4); }
+  }, 1000);
+
+  // ---------- Panel ----------
+  function sparkSVG(st) {
+    const h = st.hist, max = Math.max(...h, 60), W = 300, H = 56;
+    const pts = h.map((v, i) => [i / (h.length - 1) * W, H - 4 - (v / max) * (H - 10)]);
+    const d = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+    const c = css(color(st.pm));
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d} L ${W} ${H} L 0 ${H} Z" fill="${c}" opacity="0.18"/><path d="${d}" fill="none" stroke="${c}" stroke-width="2.2" vector-effect="non-scaling-stroke"/></svg>`;
+  }
+  function cleanerNear(st) {
+    let best = null, score = Infinity;
+    for (const o of named) {
+      if (o.key === st.key) continue;
+      const d = distM(o.c, st.c); if (d > 450) continue;
+      const sc = o.pm + d * 0.2; if (o.pm < st.pm * 0.6 && sc < score) { score = sc; best = o; }
+    }
+    return best;
+  }
+  function streetPanel(st, near) {
+    const c = color(st.pm);
+    const d = new Date(), f = h => `${String((d.getHours() + 24 + h) % 24).padStart(2, "0")}:00`;
+    $("panel").innerHTML = `
+      <div class="k">Your street</div>
+      <div class="pname">${short(st.name)}</div>
+      <div class="bignum"><span class="n">${st.pm}</span><span class="u">PM2.5 µg/m³</span></div>
+      <span class="badge" style="background:${css(c)}">${band(st.pm)}</span>
+      <div class="meta"><span class="dot"></span>Measured by ${st.riders} riders in the last 10 minutes</div>
+      <div class="spark"><div class="k">Last 12 hours</div>${sparkSVG(st)}<div class="ax"><span>${f(-12)}</span><span>${f(-6)}</span><span>now</span></div></div>
+      ${near ? `<div class="near" id="nearBtn"><div class="t">Cleaner air nearby</div>
+        <div class="r"><span class="nm">${short(near.name)}</span><span class="v" style="color:${css(color(near.pm))}">${near.pm}</span></div>
+        <div class="d">${Math.round(distM(near.c, st.c) / 10) * 10} m away · ${(st.pm / near.pm).toFixed(1).replace(".0", "")}× less smoke</div></div>` : ""}
+      <button class="cta" id="alertBtn">Alert me on LINE</button>`;
+    if (near) $("nearBtn").onclick = () => select(near.key, true);
+    $("alertBtn").onclick = () => alertMe(st, near);
+    $("panel").classList.remove("off");
+  }
+  function alertMe(st, near) {
+    const b = $("alertBtn"); b.classList.add("done"); b.textContent = "✓ Alerts on for " + short(st.name);
+    $("toastBody").innerHTML = near
+      ? `Smoke on <b>${short(st.name)}</b> is <b>${st.pm}</b> now. <b>${short(near.name)}</b>, ${Math.round(distM(near.c, st.c) / 10) * 10} m away, is <b>${near.pm}</b>. Take ${short(near.name)}.`
+      : `Smoke on <b>${short(st.name)}</b> is <b>${st.pm}</b> now. We will tell you when it is clean.`;
+    setTimeout(() => $("toast").classList.add("on"), 1800);
+    setTimeout(() => $("toast").classList.remove("on"), 10000);
+  }
+
+  // ---------- Selection ----------
+  function select(key, fly) {
+    const st = streets.get(key); if (!st) return;
+    const near = cleanerNear(st);
+    const token = ++S.token;
+    S.sel = key; S.selT = Infinity;
+    walls = wallPolys([key, near && near.key].filter(Boolean));
+    const lab = s => { const ss = s.segs.map(i => segs[i]); const mid = ss[Math.floor(ss.length / 2)].path[0]; return { pos: mid, pm: s.pm, text: `${short(s.name)} · ${s.pm}` }; };
+    wallLabels = [lab(st), near && lab(near)].filter(Boolean);
+    $("panel").classList.add("off"); $("toast").classList.remove("on");
+    const arrive = () => {
+      if (token !== S.token) return;
+      S.selT = clock == null ? performance.now() : clock;
+      streetPanel(st, near);
+    };
+    let x0 = 180, y0 = 90, x1 = -180, y1 = -90;
+    for (const s of [st, near].filter(Boolean)) for (const i of s.segs) for (const p of segs[i].path) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+    const wide = innerWidth > 760;
+    const cam = map.cameraForBounds([[x0, y0], [x1, y1]], { bearing: -28, maxZoom: 17.3,
+      padding: wide ? { top: 170, bottom: 120, left: 120, right: 420 } : { top: 140, bottom: innerHeight * 0.5, left: 30, right: 30 } });
+    if (!fly || clock != null || !cam) { if (cam) map.jumpTo({ ...cam, pitch: 58 }); arrive(); return; }
+    // A smooth flight: out a little, across, then down to the street
+    map.flyTo({ center: cam.center, zoom: Math.min(cam.zoom, 17.3), bearing: -28, pitch: 58,
+      duration: 4200, curve: 1.25, easing: ease, essential: true });
+    map.once("moveend", arrive);
+  }
+  function clearSel() {
+    S.token++; S.sel = null; S.selT = Infinity; walls = []; wallLabels = [];
+    $("panel").classList.add("off"); $("toast").classList.remove("on"); $("search").value = "";
+    map.flyTo({ ...START, duration: 3000, curve: 1.3, easing: ease, essential: true });
+  }
+
+
+  // ---------- Search ----------
+  const inp = $("search"), res = $("results");
+  let hits = [], hi = 0;
+  function renderHits() {
+    res.innerHTML = hits.map((s, i) => `<div class="res ${i === hi ? "sel" : ""}" data-i="${i}"><span>${short(s.name)}</span><span class="pm" style="background:${css(color(s.pm))}">${s.pm}</span></div>`).join("");
+    res.classList.toggle("on", hits.length > 0);
+    res.querySelectorAll(".res").forEach(el => el.onmousedown = e => { e.preventDefault(); choose(+el.dataset.i); });
+  }
+  function choose(i) { const s = hits[i]; if (!s) return; inp.value = short(s.name); res.classList.remove("on"); inp.blur(); select(s.key, true); }
+  inp.addEventListener("input", () => {
+    const q = inp.value.trim().toLowerCase().replace(/^nimman\b/, "nimmanhaemin road");
+    hi = 0;
+    if (!q) { hits = []; renderHits(); return; }
+    const words = q.split(/\s+/);
+    hits = named.filter(s => { const n = s.name.toLowerCase(); return words.every(w => n.includes(w)); })
+      .sort((a, b) => a.name.length - b.name.length).slice(0, 8);
+    renderHits();
+  });
+  inp.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") { hi = Math.min(hits.length - 1, hi + 1); renderHits(); e.preventDefault(); }
+    if (e.key === "ArrowUp") { hi = Math.max(0, hi - 1); renderHits(); e.preventDefault(); }
+    if (e.key === "Enter") choose(hi);
+    if (e.key === "Escape") { res.classList.remove("on"); inp.blur(); }
+  });
+  inp.addEventListener("blur", () => setTimeout(() => res.classList.remove("on"), 120));
+
+  // ---------- Presenter keys (not shown on screen) ----------
+  window.addEventListener("keydown", e => {
+    if (document.activeElement === inp) return;
+    if (e.key === "s" || e.key === "S") { inp.value = "Nimman Soi 7"; select("Nimmanhaemin Road Soi 7", true); }
+    if (e.key === "a" || e.key === "A") { const b = $("alertBtn"); if (b) b.click(); }
+    if (e.key === "Escape") clearSel();
+    if (e.key === "/") { e.preventDefault(); inp.focus(); }
+  });
+
+  // For still pictures on a machine with no graphics card: freeze time and draw 1 frame.
+  window.__still = (ms, setup) => { clock = T0 + ms; if (setup) setup({ select }); if (S.sel) S.selT = clock - 5000; frame(clock); };
+  map.on("load", () => document.fonts.ready.then(() => { if (!params.has("still")) requestAnimationFrame(frame); }));
+})();
+</script>
+</body>
+</html>
